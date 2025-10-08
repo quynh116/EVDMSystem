@@ -452,7 +452,7 @@ public partial class EVMDealerSystemContext : DbContext
                 .HasDefaultValueSql("(newid())")
                 .HasColumnName("id");
             entity.Property(e => e.BasePrice)
-                .HasColumnType("decimal(10, 2)")
+                .HasColumnType("decimal(18, 2)")
                 .HasColumnName("base_price");
             entity.Property(e => e.BatteryCapacity)
                 .HasColumnType("decimal(5, 2)")
