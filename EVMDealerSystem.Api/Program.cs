@@ -71,11 +71,13 @@ builder.Services.AddAuthentication(x =>
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEvmRepository, EvmRepository>();
+builder.Services.AddScoped<IDealerRepository, DealerRepository>();
 
 
 //service
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEvmService, EvmService>();
+builder.Services.AddScoped<IDealerService, DealerService>();
 
 
 builder.Services.AddSingleton<ProvideToken>();
