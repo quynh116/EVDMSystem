@@ -1,8 +1,11 @@
 ﻿using EVMDealerSystem.BusinessLogic.Commons;
+using EVMDealerSystem.BusinessLogic.Models.Request.Inventory;
 using EVMDealerSystem.BusinessLogic.Models.Request.Vehicle;
+using EVMDealerSystem.BusinessLogic.Models.Responses;
 using EVMDealerSystem.BusinessLogic.Models.Responses.VehicleResponse;
 using EVMDealerSystem.BusinessLogic.Services.Interfaces;
 using EVMDealerSystem.DataAccess.Models;
+using EVMDealerSystem.DataAccess.Repository;
 using EVMDealerSystem.DataAccess.Repository.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -16,11 +19,13 @@ namespace EVMDealerSystem.BusinessLogic.Services
     {
         private readonly IVehicleRepository _vehicleRepository;
         private readonly IEvmRepository _evmRepository;
+        private readonly IInventoryRepository _inventoryRepository;
 
-        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository)
+        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository)
         {
             _vehicleRepository = vehicleRepository;
             _evmRepository = evmRepository;
+            _inventoryRepository = inventoryRepository;
         }
         private VehicleResponse MapToVehicleResponse(Vehicle vehicle)
         {
@@ -175,6 +180,46 @@ namespace EVMDealerSystem.BusinessLogic.Services
             catch (Exception ex)
             {
                 return Result<bool>.InternalServerError($"Error deleting vehicle: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<IEnumerable<InventoryResponse>>> AddInventoryBatchAsync(InventoryBatchCreateRequest request)
+        {
+            try
+            {
+                var vehicle = await _vehicleRepository.GetVehicleByIdAsync(request.VehicleId);
+                if (vehicle == null)
+                {
+                    return Result<IEnumerable<InventoryResponse>>.NotFound($"Vehicle with ID {request.VehicleId} not found.");
+                }
+
+                var inventories = new List<Inventory>();
+
+                for (int i = 0; i < request.Quantity; i++)
+                {
+                    inventories.Add(new Inventory
+                    {
+                        Id = Guid.NewGuid(),
+                        VehicleId = request.VehicleId,
+                        DealerId = null, // Mặc định là NULL (Kho tổng)
+                        VinNumber = $"VIN-{vehicle.ModelName.Replace(" ", "").ToUpper()}-{DateTime.Now.Ticks}-{i}", // Tự động sinh VIN tạm
+                        Status = "At Manufacturer", // Trạng thái ban đầu: Kho tổng
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = null
+                    });
+                }
+
+                
+                await _inventoryRepository.AddRangeInventoryAsync(inventories);
+
+                
+
+                var responseMessage = $"{request.Quantity} units of {vehicle.ModelName} added to manufacturer inventory.";
+                return Result<IEnumerable<InventoryResponse>>.Success(new List<InventoryResponse>(), responseMessage);
+            }
+            catch (Exception ex)
+            {
+                return Result<IEnumerable<InventoryResponse>>.InternalServerError($"Error adding inventory batch: {ex.Message}");
             }
         }
     }

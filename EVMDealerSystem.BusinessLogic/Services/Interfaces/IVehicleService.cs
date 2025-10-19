@@ -1,5 +1,7 @@
 ﻿using EVMDealerSystem.BusinessLogic.Commons;
+using EVMDealerSystem.BusinessLogic.Models.Request.Inventory;
 using EVMDealerSystem.BusinessLogic.Models.Request.Vehicle;
+using EVMDealerSystem.BusinessLogic.Models.Responses;
 using EVMDealerSystem.BusinessLogic.Models.Responses.VehicleResponse;
 using System;
 using System.Collections.Generic;
@@ -16,5 +18,6 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
         Task<Result<VehicleResponse>> CreateVehicleAsync(VehicleCreateRequest request);
         Task<Result<VehicleResponse>> UpdateVehicleAsync(Guid id, VehicleUpdateRequest request);
         Task<Result<bool>> DeleteVehicleAsync(Guid id);
+        Task<Result<IEnumerable<InventoryResponse>>> AddInventoryBatchAsync(InventoryBatchCreateRequest request);
     }
 }

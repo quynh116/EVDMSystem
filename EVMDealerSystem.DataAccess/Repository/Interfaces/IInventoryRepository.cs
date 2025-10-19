@@ -14,5 +14,6 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task<Inventory> AddInventoryAsync(Inventory inventory);
         Task UpdateInventoryAsync(Inventory inventory);
         Task DeleteInventoryAsync(Guid id);
+        Task AddRangeInventoryAsync(IEnumerable<Inventory> inventories);
     }
 }

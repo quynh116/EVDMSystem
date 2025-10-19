@@ -58,5 +58,11 @@ namespace EVMDealerSystem.DataAccess.Repository
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task AddRangeInventoryAsync(IEnumerable<Inventory> inventories)
+        {
+            await _context.Inventories.AddRangeAsync(inventories);
+            await _context.SaveChangesAsync();
+        }
     }
 }

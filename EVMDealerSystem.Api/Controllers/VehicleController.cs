@@ -1,5 +1,7 @@
 ﻿using EVMDealerSystem.BusinessLogic.Commons;
+using EVMDealerSystem.BusinessLogic.Models.Request.Inventory;
 using EVMDealerSystem.BusinessLogic.Models.Request.Vehicle;
+using EVMDealerSystem.BusinessLogic.Models.Responses;
 using EVMDealerSystem.BusinessLogic.Models.Responses.VehicleResponse;
 using EVMDealerSystem.BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -71,6 +73,27 @@ namespace EVMDealerSystem.Api.Controllers
             if (result.ResultStatus == ResultStatus.Success)
             {
                 return NoContent();
+            }
+
+            return HandleResult(result);
+        }
+
+        [HttpPost("{id}/inventory")] 
+        public async Task<ActionResult<Result<IEnumerable<InventoryResponse>>>> AddInventoryBatch([FromBody] InventoryBatchCreateRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray();
+                return BadRequest(Result<IEnumerable<InventoryResponse>>.Invalid("Invalid inventory data.", errors));
+            }
+
+            
+
+            var result = await _vehicleService.AddInventoryBatchAsync(request);
+
+            if (result.IsSuccess)
+            {
+                return Ok(result);
             }
 
             return HandleResult(result);
