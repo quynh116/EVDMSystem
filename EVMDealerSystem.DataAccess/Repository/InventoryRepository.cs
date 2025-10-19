@@ -102,5 +102,12 @@ namespace EVMDealerSystem.DataAccess.Repository
             .Where(i => i.VehicleRequestId == requestId && i.Status == "Requested by Dealer")
             .ToListAsync();
         }
+
+        public async Task<IEnumerable<Inventory>> GetByDealerIdAsync(Guid dealerId)
+        {
+            return await GetQueryWithIncludes()
+                .Where(i => i.DealerId == dealerId)
+                .ToListAsync();
+        }
     }
 }
