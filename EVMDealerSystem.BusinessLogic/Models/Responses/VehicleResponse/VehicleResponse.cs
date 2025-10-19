@@ -21,7 +21,8 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses.VehicleResponse
         public string? Status { get; set; }
         public DateTime? LaunchDate { get; set; }
         public Guid EvmId { get; set; }
-        public string? EvmName { get; set; } 
+        public string? EvmName { get; set; }
+        public int CurrentStock { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

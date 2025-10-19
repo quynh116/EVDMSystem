@@ -20,12 +20,14 @@ namespace EVMDealerSystem.BusinessLogic.Services
         private readonly IVehicleRepository _vehicleRepository;
         private readonly IEvmRepository _evmRepository;
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IUserRepository _userRepository;
 
-        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository)
+        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository, IUserRepository userRepository)
         {
             _vehicleRepository = vehicleRepository;
             _evmRepository = evmRepository;
             _inventoryRepository = inventoryRepository;
+            _userRepository = userRepository;
         }
         private VehicleResponse MapToVehicleResponse(Vehicle vehicle)
         {
@@ -47,6 +49,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 LaunchDate = vehicle.LaunchDate,
                 EvmId = vehicle.EvmId,
                 EvmName = vehicle.Evm?.Name, 
+                
                 CreatedAt = vehicle.CreatedAt,
                 UpdatedAt = vehicle.UpdatedAt
             };
@@ -95,12 +98,39 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        public async Task<Result<IEnumerable<VehicleResponse>>> GetAllVehiclesAsync()
+        public async Task<Result<IEnumerable<VehicleResponse>>> GetAllVehiclesAsync(Guid? userId)
         {
             try
             {
+                Guid? targetDealerId = null;
+
+                if (userId.HasValue && userId != Guid.Empty)
+                {
+                    var user = await _userRepository.GetUserByIdAsync(userId.Value);
+
+                    
+                    if (user != null && user.DealerId.HasValue)
+                    {
+                        targetDealerId = user.DealerId.Value;
+                    }
+                    
+                }
+
+                
+                var stockMap = await _inventoryRepository.GetStockCountByVehicleAndDealerAsync(targetDealerId);
+
+                
                 var vehicles = await _vehicleRepository.GetAllVehiclesAsync();
-                var responses = vehicles.Select(v => MapToVehicleResponse(v)).ToList();
+
+                var responses = vehicles.Select(v =>
+                {
+                    var response = MapToVehicleResponse(v);
+
+                    response.CurrentStock = stockMap.GetValueOrDefault(v.Id, 0);
+
+                    return response;
+                }).ToList();
+
                 return Result<IEnumerable<VehicleResponse>>.Success(responses);
             }
             catch (Exception ex)

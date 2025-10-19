@@ -102,5 +102,24 @@ namespace EVMDealerSystem.DataAccess.Repository
             .Where(i => i.VehicleRequestId == requestId && i.Status == "Requested by Dealer")
             .ToListAsync();
         }
+
+        public async Task<IReadOnlyDictionary<Guid, int>> GetStockCountByVehicleAndDealerAsync(Guid? dealerId = null)
+        {
+            var query = _context.Inventories.AsQueryable();
+
+            if (dealerId.HasValue)
+            {
+                query = query.Where(i => i.DealerId == dealerId.Value);
+            }
+
+            return await query
+                .GroupBy(i => i.VehicleId) 
+                .Select(g => new
+                {
+                    VehicleId = g.Key,
+                    Count = g.Count()
+                })
+                .ToDictionaryAsync(x => x.VehicleId, x => x.Count);
+        }
     }
 }

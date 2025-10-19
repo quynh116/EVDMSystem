@@ -13,7 +13,7 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
 {
     public interface IVehicleService
     {
-        Task<Result<IEnumerable<VehicleResponse>>> GetAllVehiclesAsync();
+        Task<Result<IEnumerable<VehicleResponse>>> GetAllVehiclesAsync(Guid? userId);
         Task<Result<VehicleResponse>> GetVehicleByIdAsync(Guid id);
         Task<Result<VehicleResponse>> CreateVehicleAsync(VehicleCreateRequest request);
         Task<Result<VehicleResponse>> UpdateVehicleAsync(Guid id, VehicleUpdateRequest request);
