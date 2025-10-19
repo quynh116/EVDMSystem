@@ -76,5 +76,25 @@ namespace EVMDealerSystem.Api.Controllers
 
             return HandleResult(result);
         }
+
+        [HttpGet("manufacturer-stock")] 
+        public async Task<ActionResult<Result<IEnumerable<InventoryResponse>>>> GetManufacturerStock()
+        {
+            
+            var result = await _inventoryService.GetInventoriesAtManufacturerAsync();
+            return HandleResult(result);
+        }
+
+        [HttpGet("available-stock-quantity/{vehicleId}")]
+        public async Task<ActionResult<Result<int>>> GetAvailableStockQuantity(Guid vehicleId)
+        {
+            if (vehicleId == Guid.Empty)
+            {
+                return BadRequest(Result<int>.Invalid("Vehicle ID is required."));
+            }
+
+            var result = await _inventoryService.GetAvailableStockQuantityForVehicleAsync(vehicleId);
+            return HandleResult(result);
+        }
     }
 }

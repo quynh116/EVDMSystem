@@ -16,5 +16,7 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
         Task<Result<InventoryResponse>> CreateInventoryAsync(InventoryCreateRequest request);
         Task<Result<InventoryResponse>> UpdateInventoryAsync(Guid id, InventoryUpdateRequest request);
         Task<Result<bool>> DeleteInventoryAsync(Guid id);
+        Task<Result<IEnumerable<InventoryResponse>>> GetInventoriesAtManufacturerAsync();
+        Task<Result<int>> GetAvailableStockQuantityForVehicleAsync(Guid vehicleId);
     }
 }

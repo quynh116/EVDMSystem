@@ -237,6 +237,7 @@ public partial class EVMDealerSystemContext : DbContext
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.VehicleRequestId).HasColumnName("vehicle_request_id");
             entity.Property(e => e.VinNumber)
                 .HasMaxLength(255)
                 .HasColumnName("vin_number");
@@ -250,6 +251,11 @@ public partial class EVMDealerSystemContext : DbContext
                 .HasForeignKey(d => d.VehicleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__inventori__vehic__52593CB8");
+            entity.HasOne(d => d.VehicleRequest)
+    .WithMany(p => p.Inventories)
+    .HasForeignKey(d => d.VehicleRequestId)
+    .OnDelete(DeleteBehavior.SetNull)
+    .HasConstraintName("FK__inventori__vehiclerequest__540C7B00");
         });
 
         modelBuilder.Entity<Order>(entity =>

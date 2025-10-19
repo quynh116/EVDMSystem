@@ -3,6 +3,7 @@ using EVMDealerSystem.BusinessLogic.Models.Request.VehicleRequest;
 using EVMDealerSystem.BusinessLogic.Models.Responses;
 using EVMDealerSystem.BusinessLogic.Services.Interfaces;
 using EVMDealerSystem.DataAccess.Models;
+using EVMDealerSystem.DataAccess.Repository;
 using EVMDealerSystem.DataAccess.Repository.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -17,17 +18,20 @@ namespace EVMDealerSystem.BusinessLogic.Services
         private readonly IVehicleRequestRepository _requestRepository;
         private readonly IVehicleRepository _vehicleRepository;
         private readonly IDealerRepository _dealerRepository;
-        private readonly IUserRepository _userRepository; // Giả định Repository cho User
+        private readonly IUserRepository _userRepository;
+        private readonly IInventoryRepository _inventoryRepository;
 
         public VehicleRequestService(IVehicleRequestRepository requestRepository,
                                      IVehicleRepository vehicleRepository,
                                      IDealerRepository dealerRepository,
-                                     IUserRepository userRepository)
+                                     IUserRepository userRepository,
+                                     IInventoryRepository inventoryRepository)
         {
             _requestRepository = requestRepository;
             _vehicleRepository = vehicleRepository;
             _dealerRepository = dealerRepository;
             _userRepository = userRepository;
+            _inventoryRepository = inventoryRepository;
         }
 
         private VehicleRequestResponse MapToVehicleRequestResponse(VehicleRequest request)
@@ -66,23 +70,50 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 var user = await _userRepository.GetUserByIdAsync(request.CreatedBy);
                 if (user == null) return Result<VehicleRequestResponse>.NotFound($"Creating User ID {request.CreatedBy} not found.");
 
+                
+                var availableStock = await _inventoryRepository.FindAvailableStockForRequestAsync(
+                    request.VehicleId,
+                    request.Quantity);
+
+                if (availableStock.Count() < request.Quantity)
+                {
+                    int missing = request.Quantity - availableStock.Count();
+                    return Result<VehicleRequestResponse>.Conflict($"Not enough stock at manufacturer for Vehicle ID {request.VehicleId}. Missing {missing} unit(s).");
+                }
+
+                
                 var newRequest = new VehicleRequest
                 {
-                    Id = Guid.NewGuid(),
+                    Id = Guid.NewGuid(), 
                     CreatedBy = request.CreatedBy,
                     VehicleId = request.VehicleId,
                     DealerId = request.DealerId,
                     Quantity = request.Quantity,
                     Note = request.Note,
-                    Status = "Pending", 
+                    Status = "Processing", 
                     CreatedAt = DateTime.UtcNow
                 };
 
                 var addedRequest = await _requestRepository.AddVehicleRequestAsync(newRequest);
 
+                string inventoryNewStatus = "Requested by Dealer";
+
+                foreach (var inventory in availableStock)
+                {
+                    inventory.Status = inventoryNewStatus;
+                    inventory.UpdatedAt = DateTime.UtcNow;
+                    inventory.VehicleRequestId = newRequest.Id; 
+                }
+
+
+
+                await _inventoryRepository.UpdateRangeInventoryAsync(availableStock);
+
+                
+
                 var requestWithRelations = await _requestRepository.GetVehicleRequestByIdAsync(addedRequest.Id);
 
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(requestWithRelations), "Vehicle request created and pending approval.");
+                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(requestWithRelations), "Vehicle request created and stock reserved.");
             }
             catch (Exception ex)
             {
@@ -151,37 +182,56 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        public async Task<Result<VehicleRequestResponse>> ApproveVehicleRequestAsync(Guid id, Guid approverId)
+        public async Task<Result<VehicleRequestResponse>> ApproveVehicleRequestAsync(Guid requestId, Guid evmStaffId)
         {
             try
             {
-                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(id);
-                if (vehicleRequest == null)
+                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+                if (vehicleRequest == null) return Result<VehicleRequestResponse>.NotFound($"Request ID {requestId} not found.");
+
+                
+                if (vehicleRequest.Status != "Processing")
                 {
-                    return Result<VehicleRequestResponse>.NotFound($"Vehicle request with ID {id} not found.");
+                    return Result<VehicleRequestResponse>.Conflict($"Request status is {vehicleRequest.Status}. Must be 'Processing' to allocate.");
                 }
 
-                if (vehicleRequest.Status != "Pending")
+                
+                var evmStaff = await _userRepository.GetUserByIdAsync(evmStaffId);
+                if (evmStaff == null) return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found.");
+
+                
+                var reservedInventories = await _inventoryRepository.GetReservedInventoryByRequestIdAsync(requestId);
+
+                if (reservedInventories.Count() != vehicleRequest.Quantity)
                 {
-                    return Result<VehicleRequestResponse>.Conflict($"Request is already {vehicleRequest.Status}.");
+                    
+                    return Result<VehicleRequestResponse>.InternalServerError("Stock integrity error: Reserved quantity does not match request quantity. Allocation failed.");
                 }
 
-                var approver = await _userRepository.GetUserByIdAsync(approverId);
-                if (approver == null) return Result<VehicleRequestResponse>.NotFound($"Approver User ID {approverId} not found.");
+                
+                foreach (var inventory in reservedInventories)
+                {
+                    inventory.DealerId = vehicleRequest.DealerId;     
+                    inventory.Status = "Allocated to Dealer";         
+                    inventory.VehicleRequestId = null;                
+                    inventory.UpdatedAt = DateTime.UtcNow;
+                }
 
+                await _inventoryRepository.UpdateRangeInventoryAsync(reservedInventories);
 
-                vehicleRequest.Status = "Approved";
-                vehicleRequest.ApprovedBy = approverId;
+                
+                vehicleRequest.Status = "completed";
+                vehicleRequest.ApprovedBy = evmStaffId;
                 vehicleRequest.ApprovedAt = DateTime.UtcNow;
 
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
-                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(vehicleRequest.Id);
+                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
 
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), "Vehicle request approved successfully.");
+                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), $"Inventory allocated successfully. {vehicleRequest.Quantity} units moved to Dealer {vehicleRequest.Dealer.Name}.");
             }
             catch (Exception ex)
             {
-                return Result<VehicleRequestResponse>.InternalServerError($"Error approving vehicle request: {ex.Message}");
+                return Result<VehicleRequestResponse>.InternalServerError($"Error allocating inventory: {ex.Message}");
             }
         }
 

@@ -64,5 +64,43 @@ namespace EVMDealerSystem.DataAccess.Repository
             await _context.Inventories.AddRangeAsync(inventories);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<Inventory>> GetInventoriesAtManufacturerAsync()
+        {
+            return await GetQueryWithIncludes()
+        .Where(i => i.Status == "At Manufacturer" && i.DealerId == null)
+        .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Inventory>> FindAvailableStockForRequestAsync(Guid vehicleId, int quantity)
+        {
+            return await GetQueryWithIncludes()
+        .Where(i => i.VehicleId == vehicleId &&
+                    i.Status == "At Manufacturer" &&
+                    i.DealerId == null)
+        .Take(quantity) 
+        .ToListAsync();
+        }
+
+        public async Task UpdateRangeInventoryAsync(IEnumerable<Inventory> inventories)
+        {
+            _context.Inventories.UpdateRange(inventories);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<int> CountAvailableStockByVehicleIdAsync(Guid vehicleId)
+        {
+            return await _context.Inventories
+        .CountAsync(i => i.VehicleId == vehicleId &&
+                         i.Status == "At Manufacturer" &&
+                         i.DealerId == null);
+        }
+
+        public async Task<IEnumerable<Inventory>> GetReservedInventoryByRequestIdAsync(Guid requestId)
+        {
+            return await GetQueryWithIncludes()
+            .Where(i => i.VehicleRequestId == requestId && i.Status == "Requested by Dealer")
+            .ToListAsync();
+        }
     }
 }

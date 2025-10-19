@@ -36,6 +36,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 VehicleModelName = inventory.Vehicle?.ModelName ?? "N/A", 
                 DealerId = inventory.DealerId,
                 DealerName = inventory.Dealer?.Name ?? "N/A", 
+                VehicleRequestId = inventory.VehicleRequestId,
                 VinNumber = inventory.VinNumber,
                 Status = inventory.Status,
                 CreatedAt = inventory.CreatedAt,
@@ -156,6 +157,40 @@ namespace EVMDealerSystem.BusinessLogic.Services
             catch (Exception ex)
             {
                 return Result<bool>.InternalServerError($"Error deleting inventory record: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<IEnumerable<InventoryResponse>>> GetInventoriesAtManufacturerAsync()
+        {
+            try
+            {
+                var inventories = await _inventoryRepository.GetInventoriesAtManufacturerAsync();
+                var responses = inventories.Select(i => MapToInventoryResponse(i)).ToList();
+                return Result<IEnumerable<InventoryResponse>>.Success(responses);
+            }
+            catch (Exception ex)
+            {
+                return Result<IEnumerable<InventoryResponse>>.InternalServerError($"Error retrieving manufacturer inventory: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<int>> GetAvailableStockQuantityForVehicleAsync(Guid vehicleId)
+        {
+            try
+            {
+                var vehicle = await _vehicleRepository.GetVehicleByIdAsync(vehicleId);
+                if (vehicle == null)
+                {
+                    return Result<int>.NotFound($"Vehicle with ID {vehicleId} not found.");
+                }
+
+                var quantity = await _inventoryRepository.CountAvailableStockByVehicleIdAsync(vehicleId);
+
+                return Result<int>.Success(quantity);
+            }
+            catch (Exception ex)
+            {
+                return Result<int>.InternalServerError($"Error retrieving available stock quantity: {ex.Message}");
             }
         }
     }

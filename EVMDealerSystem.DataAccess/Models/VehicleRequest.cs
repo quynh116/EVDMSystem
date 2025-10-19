@@ -32,4 +32,5 @@ public partial class VehicleRequest
     public virtual Dealer Dealer { get; set; } = null!;
 
     public virtual Vehicle Vehicle { get; set; } = null!;
+    public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 }

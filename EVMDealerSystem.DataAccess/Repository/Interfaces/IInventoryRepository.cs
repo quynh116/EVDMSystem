@@ -15,5 +15,11 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task UpdateInventoryAsync(Inventory inventory);
         Task DeleteInventoryAsync(Guid id);
         Task AddRangeInventoryAsync(IEnumerable<Inventory> inventories);
+        Task<IEnumerable<Inventory>> GetInventoriesAtManufacturerAsync();
+        Task<IEnumerable<Inventory>> FindAvailableStockForRequestAsync(Guid vehicleId, int quantity);
+        Task UpdateRangeInventoryAsync(IEnumerable<Inventory> inventories);
+        Task<int> CountAvailableStockByVehicleIdAsync(Guid vehicleId);
+        Task<IEnumerable<Inventory>> GetReservedInventoryByRequestIdAsync(Guid requestId);
+
     }
 }

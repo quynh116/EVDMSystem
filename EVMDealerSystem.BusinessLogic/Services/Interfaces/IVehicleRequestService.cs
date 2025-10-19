@@ -15,7 +15,7 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
         Task<Result<VehicleRequestResponse>> GetVehicleRequestByIdAsync(Guid id);
         Task<Result<VehicleRequestResponse>> CreateVehicleRequestAsync(VehicleRequestCreateRequest request);
         Task<Result<VehicleRequestResponse>> UpdateVehicleRequestAsync(Guid id, VehicleRequestUpdateRequest request);
-        Task<Result<VehicleRequestResponse>> ApproveVehicleRequestAsync(Guid id, Guid approverId); 
+        Task<Result<VehicleRequestResponse>> ApproveVehicleRequestAsync(Guid requestId, Guid evmStaffId); 
         Task<Result<bool>> DeleteVehicleRequestAsync(Guid id);
     }
 }

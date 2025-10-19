@@ -77,15 +77,15 @@ namespace EVMDealerSystem.Api.Controllers
             return HandleResult(result);
         }
 
-        [HttpPost("{id}/approve")]
-        public async Task<ActionResult<Result<VehicleRequestResponse>>> ApproveRequest(Guid id, [FromQuery] Guid approverId)
+        [HttpPost("approve")]
+        public async Task<ActionResult<Result<VehicleRequestResponse>>> ApproveRequest(Guid id, [FromQuery] Guid evmStaffId)
         {
-            if (approverId == Guid.Empty)
+            if (evmStaffId == Guid.Empty)
             {
                 return BadRequest(Result<VehicleRequestResponse>.Invalid("Approver ID is required."));
             }
 
-            var result = await _vehicleRequestService.ApproveVehicleRequestAsync(id, approverId);
+            var result = await _vehicleRequestService.ApproveVehicleRequestAsync(id, evmStaffId);
             return HandleResult(result);
         }
     }

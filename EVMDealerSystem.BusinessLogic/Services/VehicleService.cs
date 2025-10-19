@@ -201,9 +201,9 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     {
                         Id = Guid.NewGuid(),
                         VehicleId = request.VehicleId,
-                        DealerId = null, // Mặc định là NULL (Kho tổng)
-                        VinNumber = $"VIN-{vehicle.ModelName.Replace(" ", "").ToUpper()}-{DateTime.Now.Ticks}-{i}", // Tự động sinh VIN tạm
-                        Status = "At Manufacturer", // Trạng thái ban đầu: Kho tổng
+                        DealerId = null, 
+                        VinNumber = $"VIN-{vehicle.ModelName.Replace(" ", "").ToUpper()}-{DateTime.Now.Ticks}-{i}", 
+                        Status = "At Manufacturer", 
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = null
                     });

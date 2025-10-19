@@ -12,6 +12,7 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses
         public Guid VehicleId { get; set; }
         public string VehicleModelName { get; set; } = null!; 
         public Guid? DealerId { get; set; }
+        public Guid? VehicleRequestId { get; set; }
         public string DealerName { get; set; } = null!; 
         public string VinNumber { get; set; } = null!;
         public string? Status { get; set; }

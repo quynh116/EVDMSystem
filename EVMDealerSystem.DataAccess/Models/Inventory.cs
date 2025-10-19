@@ -10,6 +10,7 @@ public partial class Inventory
     public Guid VehicleId { get; set; }
 
     public Guid? DealerId { get; set; }
+    public Guid? VehicleRequestId { get; set; }
 
     public string VinNumber { get; set; } = null!;
 
@@ -24,4 +25,5 @@ public partial class Inventory
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual Vehicle Vehicle { get; set; } = null!;
+    public virtual VehicleRequest? VehicleRequest { get; set; }
 }
