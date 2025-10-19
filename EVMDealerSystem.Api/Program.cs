@@ -74,6 +74,7 @@ builder.Services.AddScoped<IEvmRepository, EvmRepository>();
 builder.Services.AddScoped<IDealerRepository, DealerRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IVehicleRequestRepository, VehicleRequestRepository>();
 
 
 //service
@@ -82,6 +83,7 @@ builder.Services.AddScoped<IEvmService, EvmService>();
 builder.Services.AddScoped<IDealerService, DealerService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IVehicleRequestService, VehicleRequestService>();
 
 
 builder.Services.AddSingleton<ProvideToken>();
