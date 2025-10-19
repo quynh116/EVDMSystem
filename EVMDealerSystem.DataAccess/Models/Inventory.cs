@@ -9,7 +9,7 @@ public partial class Inventory
 
     public Guid VehicleId { get; set; }
 
-    public Guid DealerId { get; set; }
+    public Guid? DealerId { get; set; }
 
     public string VinNumber { get; set; } = null!;
 

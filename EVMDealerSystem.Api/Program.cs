@@ -23,7 +23,7 @@ builder.Services.AddDbContext<EVMDealerSystemContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "DrugPrevention", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "EvmDealerSystem", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Please Enter The Token To Authenticate The Role",
@@ -73,6 +73,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEvmRepository, EvmRepository>();
 builder.Services.AddScoped<IDealerRepository, DealerRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 
 
 //service
@@ -80,6 +81,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEvmService, EvmService>();
 builder.Services.AddScoped<IDealerService, DealerService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 
 builder.Services.AddSingleton<ProvideToken>();
@@ -88,16 +90,28 @@ builder.Services.AddSingleton<ProvideToken>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+
 
 app.UseHttpsRedirection();
+
+app.UseCors();
 
 app.UseAuthorization();
 
