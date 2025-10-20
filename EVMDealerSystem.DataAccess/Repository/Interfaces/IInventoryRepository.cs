@@ -23,5 +23,6 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task<IReadOnlyDictionary<Guid, int>> GetStockCountByVehicleAndDealerAsync(Guid? dealerId = null);
         Task<IQueryable<Inventory>> GetInventoryQueryAsync();
 
+        Task<IEnumerable<Inventory>> GetByDealerIdAsync(Guid dealerId);
     }
 }

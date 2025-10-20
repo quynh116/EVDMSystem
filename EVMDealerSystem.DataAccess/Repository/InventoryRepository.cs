@@ -126,5 +126,12 @@ namespace EVMDealerSystem.DataAccess.Repository
         {
             return GetQueryWithIncludes().AsNoTracking();
         }
+
+        public async Task<IEnumerable<Inventory>> GetByDealerIdAsync(Guid dealerId)
+        {
+            return await GetQueryWithIncludes()
+                .Where(i => i.DealerId == dealerId)
+                .ToListAsync();
+        }
     }
 }
