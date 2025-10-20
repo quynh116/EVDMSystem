@@ -18,5 +18,6 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
         Task<Result<bool>> DeleteInventoryAsync(Guid id);
         Task<Result<IEnumerable<InventoryResponse>>> GetInventoriesAtManufacturerAsync();
         Task<Result<int>> GetAvailableStockQuantityForVehicleAsync(Guid vehicleId);
+        Task<Result<PagedList<InventoryResponse>>> GetInventoriesWithPagingAsync(InventoryParams pagingParams);
     }
 }

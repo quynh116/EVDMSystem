@@ -127,6 +127,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     var response = MapToVehicleResponse(v);
 
                     response.CurrentStock = stockMap.GetValueOrDefault(v.Id, 0);
+                    response.DealerId = targetDealerId;
 
                     return response;
                 }).ToList();

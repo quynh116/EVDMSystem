@@ -121,5 +121,10 @@ namespace EVMDealerSystem.DataAccess.Repository
                 })
                 .ToDictionaryAsync(x => x.VehicleId, x => x.Count);
         }
+
+        public async Task<IQueryable<Inventory>> GetInventoryQueryAsync()
+        {
+            return GetQueryWithIncludes().AsNoTracking();
+        }
     }
 }

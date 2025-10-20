@@ -56,9 +56,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 
 
-                // 2. Kiểm tra nghiệp vụ (ví dụ: VIN có bị trùng không)
-
-                // 3. Tạo đối tượng Inventory
                 var newInventory = new Inventory
                 {
                     Id = Guid.NewGuid(),
@@ -191,6 +188,53 @@ namespace EVMDealerSystem.BusinessLogic.Services
             catch (Exception ex)
             {
                 return Result<int>.InternalServerError($"Error retrieving available stock quantity: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<PagedList<InventoryResponse>>> GetInventoriesWithPagingAsync(InventoryParams pagingParams)
+        {
+            try
+            {
+                var query = await _inventoryRepository.GetInventoryQueryAsync();
+
+                if (!string.IsNullOrWhiteSpace(pagingParams.VehicleModelName))
+                {
+                    query = query.Where(i => i.Vehicle != null && i.Vehicle.ModelName.ToLower().Contains(pagingParams.VehicleModelName.ToLower()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(pagingParams.DealerName))
+                {
+                    query = query.Where(i => i.Dealer != null && i.Dealer.Name.ToLower().Contains(pagingParams.DealerName.ToLower()));
+                }
+
+                if (!string.IsNullOrWhiteSpace(pagingParams.Status))
+                {
+                    // Lọc theo Status
+                    query = query.Where(i => i.Status != null && i.Status.ToLower().Contains(pagingParams.Status.ToLower()));
+                }
+
+                query = query.OrderByDescending(i => i.CreatedAt);
+
+                var pagedInventories = await PagedList<Inventory>.CreateAsync(
+                    query,
+                    pagingParams.PageNumber,
+                    pagingParams.PageSize);
+
+                var responseItems = pagedInventories.Select(i => MapToInventoryResponse(i)).ToList();
+
+
+                var pagedResponse = new PagedList<InventoryResponse>(
+                    responseItems,
+                    pagedInventories.TotalCount,
+                    pagedInventories.CurrentPage,
+                    pagedInventories.PageSize);
+
+
+                return Result<PagedList<InventoryResponse>>.Success(pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return Result<PagedList<InventoryResponse>>.InternalServerError($"Error retrieving filtered inventories: {ex.Message}");
             }
         }
     }
