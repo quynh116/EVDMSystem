@@ -15,6 +15,7 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task UpdateAsync(Order order);
         Task DeleteAsync(Guid id);
         Task<IEnumerable<Order>> GetByStaffIdAsync(Guid staffId);
+        Task<IEnumerable<Order>> GetByDealerIdAsync(Guid dealerId);
         Task<int> CountTodayOrdersByDealerAsync(Guid dealerId);
     }
 }

@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace EVMDealerSystem.DataAccess.Repository
@@ -26,6 +25,7 @@ namespace EVMDealerSystem.DataAccess.Repository
                 .Include(o => o.Dealer)
                 .Include(o => o.DealerStaff)
                 .Include(o => o.Inventory)
+                .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
         }
 
@@ -71,6 +71,18 @@ namespace EVMDealerSystem.DataAccess.Repository
                 .Include(o => o.Dealer)
                 .Include(o => o.Inventory)
                 .Where(o => o.DealerStaffId == staffId)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Order>> GetByDealerIdAsync(Guid dealerId)
+        {
+            return await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.Vehicle)
+                .Include(o => o.DealerStaff)
+                .Include(o => o.Inventory)
+                .Where(o => o.DealerId == dealerId)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
         }

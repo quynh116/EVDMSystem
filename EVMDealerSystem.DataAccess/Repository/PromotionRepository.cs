@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using EVMDealerSystem.DataAccess.Models;
+﻿using EVMDealerSystem.DataAccess.Models;
 using EVMDealerSystem.DataAccess.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace EVMDealerSystem.DataAccess.Repository
 {
