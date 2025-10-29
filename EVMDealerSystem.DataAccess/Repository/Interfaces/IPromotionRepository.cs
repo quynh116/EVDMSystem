@@ -11,5 +11,10 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
     {
         Task<Promotion?> GetByIdAsync(Guid id);
         Task<Promotion?> GetActiveByVehicleIdAsync(Guid vehicleId);
+        Task<IEnumerable<Promotion>> GetAllPromotionsAsync();
+        Task<Promotion?> GetPromotionByIdAsync(Guid id);
+        Task<Promotion> AddPromotionAsync(Promotion promotion);
+        Task<Promotion> UpdatePromotionAsync(Promotion promotion);
+        Task DeletePromotionAsync(Guid id);
     }
 }

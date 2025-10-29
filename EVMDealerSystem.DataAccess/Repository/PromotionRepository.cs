@@ -16,6 +16,14 @@ namespace EVMDealerSystem.DataAccess.Repository
             _context = context;
         }
 
+        private IQueryable<Promotion> GetQueryWithIncludes()
+        {
+            return _context.Promotions
+                .Include(p => p.Vehicle)
+                .Include(p => p.CreatedByNavigation)
+                .AsNoTracking();
+        }
+
         public async Task<Promotion?> GetByIdAsync(Guid id)
         {
             return await _context.Promotions
@@ -32,6 +40,40 @@ namespace EVMDealerSystem.DataAccess.Repository
                            p.StartDate <= now &&
                            p.EndDate >= now)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<Promotion>> GetAllPromotionsAsync()
+        {
+            return await GetQueryWithIncludes().ToListAsync();
+        }
+
+        public async Task<Promotion> AddPromotionAsync(Promotion promotion)
+        {
+            _context.Promotions.Add(promotion);
+            await _context.SaveChangesAsync();
+            return promotion;
+        }
+
+        public async Task<Promotion> UpdatePromotionAsync(Promotion promotion)
+        {
+            _context.Promotions.Update(promotion);
+            await _context.SaveChangesAsync();
+            return promotion;
+        }
+
+        public async Task DeletePromotionAsync(Guid id)
+        {
+            var promotion = await _context.Promotions.FindAsync(id);
+            if (promotion != null)
+            {
+                _context.Promotions.Remove(promotion);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<Promotion?> GetPromotionByIdAsync(Guid id)
+        {
+            return await GetQueryWithIncludes().FirstOrDefaultAsync(p => p.Id == id);
         }
     }
 }
