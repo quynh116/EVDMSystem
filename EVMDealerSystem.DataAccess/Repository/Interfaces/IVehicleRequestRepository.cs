@@ -9,7 +9,7 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
 {
     public interface IVehicleRequestRepository
     {
-        Task<IEnumerable<VehicleRequest>> GetAllVehicleRequestsAsync();
+        Task<IQueryable<VehicleRequest>> GetAllVehicleRequestsAsync();
         Task<VehicleRequest?> GetVehicleRequestByIdAsync(Guid id);
         Task<VehicleRequest> AddVehicleRequestAsync(VehicleRequest request);
         Task UpdateVehicleRequestAsync(VehicleRequest request);

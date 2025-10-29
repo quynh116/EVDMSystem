@@ -24,8 +24,11 @@ public partial class VehicleRequest
     public DateTime? ApprovedAt { get; set; }
 
     public string? Note { get; set; }
-
+    public string? CancellationReason { get; set; }
+    public Guid? CanceledBy { get; set; }
+    public DateTime? CanceledAt { get; set; }
     public virtual User? ApprovedByNavigation { get; set; }
+    public virtual User? CanceledByNavigation { get; set; }
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 

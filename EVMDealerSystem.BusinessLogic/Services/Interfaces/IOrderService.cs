@@ -1,6 +1,5 @@
 ﻿using EVMDealerSystem.BusinessLogic.Commons;
 using EVMDealerSystem.BusinessLogic.Models.Request;
-using EVMDealerSystem.BusinessLogic.Models.Request.Order;
 using EVMDealerSystem.BusinessLogic.Models.Responses;
 using System;
 using System.Collections.Generic;

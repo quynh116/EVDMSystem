@@ -42,4 +42,6 @@ public partial class User
     public virtual ICollection<VehicleRequest> VehicleRequestApprovedByNavigations { get; set; } = new List<VehicleRequest>();
 
     public virtual ICollection<VehicleRequest> VehicleRequestCreatedByNavigations { get; set; } = new List<VehicleRequest>();
+    public virtual ICollection<VehicleRequest> VehicleRequestCanceledByNavigations { get; set; } = new List<VehicleRequest>();
+
 }

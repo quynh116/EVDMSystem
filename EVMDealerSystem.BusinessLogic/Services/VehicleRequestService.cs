@@ -5,6 +5,7 @@ using EVMDealerSystem.BusinessLogic.Services.Interfaces;
 using EVMDealerSystem.DataAccess.Models;
 using EVMDealerSystem.DataAccess.Repository;
 using EVMDealerSystem.DataAccess.Repository.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,7 +54,10 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 ApprovedBy = request.ApprovedBy,
                 ApprovedByName = request.ApprovedByNavigation?.FullName,
                 ApprovedAt = request.ApprovedAt,
-                Note = request.Note
+                Note = request.Note,
+                CanceledAt = request.CanceledAt,
+                CanceledBy = request.CanceledBy,
+                CancellationReason = request.CancellationReason
             };
         }
 
@@ -71,15 +75,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (user == null) return Result<VehicleRequestResponse>.NotFound($"Creating User ID {request.CreatedBy} not found.");
 
                 
-                var availableStock = await _inventoryRepository.FindAvailableStockForRequestAsync(
-                    request.VehicleId,
-                    request.Quantity);
-
-                if (availableStock.Count() < request.Quantity)
-                {
-                    int missing = request.Quantity - availableStock.Count();
-                    return Result<VehicleRequestResponse>.Conflict($"Not enough stock at manufacturer for Vehicle ID {request.VehicleId}. Missing {missing} unit(s).");
-                }
+                
 
                 
                 var newRequest = new VehicleRequest
@@ -90,25 +86,13 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     DealerId = request.DealerId,
                     Quantity = request.Quantity,
                     Note = request.Note,
-                    Status = "Processing", 
+                    Status = "Pending Manager Approval", 
                     CreatedAt = DateTime.UtcNow
                 };
 
                 var addedRequest = await _requestRepository.AddVehicleRequestAsync(newRequest);
 
-                string inventoryNewStatus = "Requested by Dealer";
-
-                foreach (var inventory in availableStock)
-                {
-                    inventory.Status = inventoryNewStatus;
-                    inventory.UpdatedAt = DateTime.UtcNow;
-                    inventory.VehicleRequestId = newRequest.Id; 
-                }
-
-
-
-                await _inventoryRepository.UpdateRangeInventoryAsync(availableStock);
-
+               
                 
 
                 var requestWithRelations = await _requestRepository.GetVehicleRequestByIdAsync(addedRequest.Id);
@@ -121,17 +105,64 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        public async Task<Result<IEnumerable<VehicleRequestResponse>>> GetAllVehicleRequestsAsync()
+        public async Task<Result<PagedList<VehicleRequestResponse>>> GetAllVehicleRequestsAsync(Guid? userId, VehicleRequestParams pagingParams)
         {
             try
             {
-                var requests = await _requestRepository.GetAllVehicleRequestsAsync();
-                var responses = requests.Select(r => MapToVehicleRequestResponse(r)).ToList();
-                return Result<IEnumerable<VehicleRequestResponse>>.Success(responses);
+                IQueryable<VehicleRequest> query = await _requestRepository.GetAllVehicleRequestsAsync();
+                if (userId.HasValue && userId != Guid.Empty)
+                {
+                    var user = await _userRepository.GetUserByIdAsync(userId.Value);
+
+                    if (user != null)
+                    {
+                        
+                        if (user.RoleId == 1)
+                        {
+                            query = query.Where(r => r.CreatedBy == userId.Value);
+                        }
+
+                        else if (user.RoleId == 2 && user.DealerId.HasValue)
+                        {
+                            query = query.Where(r => r.DealerId == user.DealerId.Value);
+                        }
+
+                        
+                        else 
+                        {
+                            query = query.Where(r => r.Status != "Pending Manager Approval");
+                        }
+                    }
+                }
+
+                if (pagingParams.CreatedBy.HasValue && pagingParams.CreatedBy.Value != Guid.Empty)
+                {
+                    query = query.Where(r => r.CreatedBy == pagingParams.CreatedBy.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(pagingParams.Status))
+                {
+                    query = query.Where(r => r.Status != null && r.Status.Equals(pagingParams.Status));
+                }
+                query = query.OrderByDescending(r => r.CreatedAt);
+
+                var pagedRequests = await PagedList<VehicleRequest>.CreateAsync(
+                query,
+                pagingParams.PageNumber,
+                pagingParams.PageSize);
+
+                var responseItems = pagedRequests.Select(r => MapToVehicleRequestResponse(r)).ToList();
+
+                var pagedResponse = new PagedList<VehicleRequestResponse>(
+                responseItems,
+                pagedRequests.TotalCount,
+                pagedRequests.CurrentPage,
+                pagedRequests.PageSize);
+                return Result<PagedList<VehicleRequestResponse>>.Success(pagedResponse);
             }
             catch (Exception ex)
             {
-                return Result<IEnumerable<VehicleRequestResponse>>.InternalServerError($"Error retrieving vehicle requests: {ex.Message}");
+                return Result<PagedList<VehicleRequestResponse>>.InternalServerError($"Error retrieving vehicle requests: {ex.Message}");
             }
         }
 
@@ -256,6 +287,163 @@ namespace EVMDealerSystem.BusinessLogic.Services
             catch (Exception ex)
             {
                 return Result<bool>.InternalServerError($"Error deleting vehicle request: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<VehicleRequestResponse>> ApproveByDealerManagerAsync(Guid requestId, Guid managerId)
+        {
+            try
+            {
+                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+                if (vehicleRequest == null)
+                    return Result<VehicleRequestResponse>.NotFound($"Request ID {requestId} not found.");
+
+                if (vehicleRequest.Status != "Pending Manager Approval")
+                {
+                    return Result<VehicleRequestResponse>.Conflict($"Cannot approve request. Current status is {vehicleRequest.Status}. Must be 'Pending Manager Approval'.");
+                }
+
+                var manager = await _userRepository.GetUserByIdAsync(managerId);
+                if (manager == null)
+                    return Result<VehicleRequestResponse>.NotFound($"Manager ID {managerId} not found.");
+
+                vehicleRequest.Status = "Pending EVM Allocation"; 
+                vehicleRequest.ApprovedBy = managerId;
+                vehicleRequest.ApprovedAt = DateTime.UtcNow;
+
+                await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
+                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+
+                return Result<VehicleRequestResponse>.Success(
+                    MapToVehicleRequestResponse(updatedRequest),
+                    "Vehicle request approved by Manager and sent for EVM allocation."
+                );
+            }
+            catch (Exception ex)
+            {
+                return Result<VehicleRequestResponse>.InternalServerError($"Error approving vehicle request by Manager: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<VehicleRequestResponse>> RejectByDealerManagerAsync(Guid requestId, Guid managerId, string reason)
+        {
+            try
+            {
+                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+                if (vehicleRequest == null)
+                    return Result<VehicleRequestResponse>.NotFound($"Request ID {requestId} not found.");
+
+                if (vehicleRequest.Status != "Pending Manager Approval")
+                {
+                    return Result<VehicleRequestResponse>.Conflict($"Cannot reject request. Current status is {vehicleRequest.Status}. Must be 'Pending Manager Approval'.");
+                }
+
+                var manager = await _userRepository.GetUserByIdAsync(managerId);
+                if (manager == null)
+                    return Result<VehicleRequestResponse>.NotFound($"Manager ID {managerId} not found.");
+
+                vehicleRequest.Status = "Canceled by Manager";
+                vehicleRequest.CancellationReason = reason;
+                vehicleRequest.CanceledBy = managerId;
+                vehicleRequest.CanceledAt = DateTime.UtcNow;
+
+                await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
+                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+
+                return Result<VehicleRequestResponse>.Success(
+                    MapToVehicleRequestResponse(updatedRequest),
+                    $"Vehicle request rejected by Manager: {reason}"
+                );
+            }
+            catch (Exception ex)
+            {
+                return Result<VehicleRequestResponse>.InternalServerError($"Error rejecting vehicle request by Manager: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<VehicleRequestResponse>> ApproveByEVMAsync(Guid requestId, Guid evmStaffId)
+        {
+            try
+            {
+                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+                if (vehicleRequest == null) return Result<VehicleRequestResponse>.NotFound($"Request ID {requestId} not found.");
+
+                if (vehicleRequest.Status != "Pending EVM Allocation")
+                {
+                    return Result<VehicleRequestResponse>.Conflict($"Cannot approve request. Current status is {vehicleRequest.Status}.");
+                }
+
+                var evmStaff = await _userRepository.GetUserByIdAsync(evmStaffId);
+                if (evmStaff == null) return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found.");
+
+                var availableStock = await _inventoryRepository.FindAvailableStockForRequestAsync(
+                    vehicleRequest.VehicleId,
+                    vehicleRequest.Quantity);
+
+                if (availableStock.Count() < vehicleRequest.Quantity)
+                {
+                    int availableCount = availableStock.Count();
+                    int requestedQuantity = vehicleRequest.Quantity;
+                    return Result<VehicleRequestResponse>.Conflict(
+                        $"Insufficient stock for allocation. Currently, **only {availableCount} vehicles are available to ship,  while the dealership requested **{requestedQuantity} vehicles**." +
+                        "Please reject the request and provide a reason."
+                    );
+                }
+
+                Guid currentRequestId = vehicleRequest.Id;
+                foreach (var inventory in availableStock)
+                {
+                    inventory.DealerId = vehicleRequest.DealerId;     
+                    inventory.Status = "Allocated to Dealer";         
+                    inventory.VehicleRequestId = currentRequestId;                
+                    inventory.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await _inventoryRepository.UpdateRangeInventoryAsync(availableStock);
+
+                vehicleRequest.Status = "completed";
+                vehicleRequest.ApprovedBy = evmStaffId;
+                vehicleRequest.ApprovedAt = DateTime.UtcNow;
+
+                await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
+                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+
+                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), $"Inventory allocated successfully. {vehicleRequest.Quantity} units moved.");
+            }
+            catch (Exception ex)
+            {
+                return Result<VehicleRequestResponse>.InternalServerError($"Error approving and allocating inventory: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<VehicleRequestResponse>> RejectByEVMAsync(Guid requestId, Guid evmStaffId, string reason)
+        {
+            try
+            {
+                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+                if (vehicleRequest == null) return Result<VehicleRequestResponse>.NotFound($"Request ID {requestId} not found.");
+
+                if (vehicleRequest.Status != "Pending EVM Allocation")
+                {
+                    return Result<VehicleRequestResponse>.Conflict($"Cannot reject request. Current status is {vehicleRequest.Status}.");
+                }
+
+                var evmStaff = await _userRepository.GetUserByIdAsync(evmStaffId);
+                if (evmStaff == null) return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found.");
+
+                vehicleRequest.Status = "Canceled by EVM";
+                vehicleRequest.CancellationReason = reason; 
+                vehicleRequest.CanceledBy = evmStaffId;
+                vehicleRequest.CanceledAt = DateTime.UtcNow;
+
+                await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
+                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+
+                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), $"Vehicle request canceled by EVM: {reason}");
+            }
+            catch (Exception ex)
+            {
+                return Result<VehicleRequestResponse>.InternalServerError($"Error rejecting vehicle request: {ex.Message}");
             }
         }
     }

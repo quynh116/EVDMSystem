@@ -22,5 +22,8 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses
         public string? ApprovedByName { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public string? Note { get; set; }
+        public string? CancellationReason { get; set; }
+        public Guid? CanceledBy { get; set; }
+        public DateTime? CanceledAt { get; set; }
     }
 }

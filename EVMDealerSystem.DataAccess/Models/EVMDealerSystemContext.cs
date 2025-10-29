@@ -537,6 +537,13 @@ public partial class EVMDealerSystemContext : DbContext
                 .HasForeignKey(d => d.VehicleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__vehicle_r__vehic__71D1E811");
+            entity.Property(e => e.CanceledBy).HasColumnName("canceled_by");
+            entity.Property(e => e.CanceledAt).HasColumnName("canceled_at");
+            entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
+            entity.HasOne(d => d.CanceledByNavigation)
+        .WithMany(p => p.VehicleRequestCanceledByNavigations)
+        .HasForeignKey(d => d.CanceledBy)
+        .HasConstraintName("FK_vehicle_requests_canceled_by");
         });
 
         OnModelCreatingPartial(modelBuilder);
