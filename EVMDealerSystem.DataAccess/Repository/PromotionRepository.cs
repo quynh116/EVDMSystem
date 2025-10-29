@@ -75,5 +75,19 @@ namespace EVMDealerSystem.DataAccess.Repository
         {
             return await GetQueryWithIncludes().FirstOrDefaultAsync(p => p.Id == id);
         }
+
+        public async Task<IEnumerable<Promotion>> GetActivePromotionsByVehicleIdAsync(Guid vehicleId)
+        {
+            var now = DateTime.UtcNow;
+            return await _context.Promotions
+            .Where(p =>
+                p.VehicleId == vehicleId &&
+                p.IsActive == true &&
+                p.StartDate <= now &&
+                p.EndDate >= now
+            )
+            .AsNoTracking()
+            .ToListAsync();
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using EVMDealerSystem.BusinessLogic.Commons;
+﻿using Azure;
+using EVMDealerSystem.BusinessLogic.Commons;
 using EVMDealerSystem.BusinessLogic.Models.Request.Inventory;
 using EVMDealerSystem.BusinessLogic.Models.Request.Vehicle;
 using EVMDealerSystem.BusinessLogic.Models.Responses;
@@ -21,15 +22,17 @@ namespace EVMDealerSystem.BusinessLogic.Services
         private readonly IEvmRepository _evmRepository;
         private readonly IInventoryRepository _inventoryRepository;
         private readonly IUserRepository _userRepository;
+        private readonly IPromotionRepository _promotionRepository;
 
-        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository, IUserRepository userRepository)
+        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository, IUserRepository userRepository, IPromotionRepository promotionRepository)
         {
             _vehicleRepository = vehicleRepository;
             _evmRepository = evmRepository;
             _inventoryRepository = inventoryRepository;
             _userRepository = userRepository;
+            _promotionRepository = promotionRepository;
         }
-        private VehicleResponse MapToVehicleResponse(Vehicle vehicle)
+        private VehicleResponse MapToVehicleResponse(Vehicle vehicle, decimal finalPrice, int currentStock)
         {
             if (vehicle == null) return null;
 
@@ -48,11 +51,22 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 Status = vehicle.Status,
                 LaunchDate = vehicle.LaunchDate,
                 EvmId = vehicle.EvmId,
-                EvmName = vehicle.Evm?.Name, 
-                
+                EvmName = vehicle.Evm?.Name,
+                FinalPrice = finalPrice,
+                CurrentStock = currentStock,
                 CreatedAt = vehicle.CreatedAt,
                 UpdatedAt = vehicle.UpdatedAt
             };
+        }
+
+        private VehicleResponse MapToVehicleResponse(Vehicle vehicle)
+        {
+            if (vehicle == null) return null;
+
+            decimal defaultFinalPrice = vehicle.BasePrice;
+            int defaultCurrentStock = 0;
+
+            return MapToVehicleResponse(vehicle, defaultFinalPrice, defaultCurrentStock);
         }
 
         public async Task<Result<VehicleResponse>> CreateVehicleAsync(VehicleCreateRequest request)
@@ -122,15 +136,19 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 
                 var vehicles = await _vehicleRepository.GetAllVehiclesAsync();
 
-                var responses = vehicles.Select(v =>
+                var responses = new List<VehicleResponse>();
+
+                foreach (var v in vehicles)
                 {
-                    var response = MapToVehicleResponse(v);
+                    int currentStock = stockMap.GetValueOrDefault(v.Id, 0);
 
-                    response.CurrentStock = stockMap.GetValueOrDefault(v.Id, 0);
-                    response.DealerId = targetDealerId;
+                    decimal finalPrice = await CalculateFinalPriceAsync(v.Id, v.BasePrice);
 
-                    return response;
-                }).ToList();
+                    var response = MapToVehicleResponse(v, finalPrice, currentStock);
+                    response.DealerId = targetDealerId; 
+
+                    responses.Add(response);
+                }
 
                 return Result<IEnumerable<VehicleResponse>>.Success(responses);
             }
@@ -140,7 +158,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        public async Task<Result<VehicleResponse>> GetVehicleByIdAsync(Guid id)
+        public async Task<Result<VehicleResponse>> GetVehicleByIdAsync(Guid id, Guid? userId)
         {
             try
             {
@@ -149,7 +167,21 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 {
                     return Result<VehicleResponse>.NotFound($"Vehicle with ID {id} not found.");
                 }
-                return Result<VehicleResponse>.Success(MapToVehicleResponse(vehicle));
+
+                Guid? targetDealerId = null;
+                int currentStock = 0;
+                var stockMap = await _inventoryRepository.GetStockCountByVehicleAndDealerAsync(targetDealerId);
+                if (stockMap.ContainsKey(id))
+                {
+                    currentStock = stockMap[id];
+                }
+
+                decimal finalPrice = await CalculateFinalPriceAsync(id, vehicle.BasePrice);
+
+                var response = MapToVehicleResponse(vehicle, finalPrice, currentStock);
+                response.DealerId = targetDealerId; 
+
+                return Result<VehicleResponse>.Success(response);
             }
             catch (Exception ex)
             {
@@ -252,6 +284,27 @@ namespace EVMDealerSystem.BusinessLogic.Services
             {
                 return Result<IEnumerable<InventoryResponse>>.InternalServerError($"Error adding inventory batch: {ex.Message}");
             }
+        }
+
+        private async Task<decimal> CalculateFinalPriceAsync(Guid vehicleId, decimal basePrice)
+        {
+            var promotions = await _promotionRepository.GetActivePromotionsByVehicleIdAsync(vehicleId);
+
+            decimal finalPrice = basePrice;
+
+            foreach (var p in promotions)
+            {
+                if (p.IsActive && p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow)
+                {
+                    if (p.DiscountType == "Percent" && p.DiscountPercent.HasValue)
+                    {
+                        decimal discountAmount = basePrice * (p.DiscountPercent.Value / 100m);
+                        finalPrice -= discountAmount;
+                    }
+                }
+            }
+
+            return Math.Max(0, finalPrice);
         }
     }
 }

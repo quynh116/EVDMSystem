@@ -16,5 +16,6 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task<Promotion> AddPromotionAsync(Promotion promotion);
         Task<Promotion> UpdatePromotionAsync(Promotion promotion);
         Task DeletePromotionAsync(Guid id);
+        Task<IEnumerable<Promotion>> GetActivePromotionsByVehicleIdAsync(Guid vehicleId);
     }
 }

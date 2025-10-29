@@ -27,9 +27,9 @@ namespace EVMDealerSystem.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Result<VehicleResponse>>> GetVehicleById(Guid id)
+        public async Task<ActionResult<Result<VehicleResponse>>> GetVehicleById(Guid id, Guid? userId)
         {
-            var result = await _vehicleService.GetVehicleByIdAsync(id);
+            var result = await _vehicleService.GetVehicleByIdAsync(id, userId);
             return HandleResult(result);
         }
 
