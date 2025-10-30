@@ -20,16 +20,16 @@ namespace EVMDealerSystem.Api.Controllers
             _vehicleService = vehicleService;
         }
         [HttpGet]
-        public async Task<ActionResult<Result<IEnumerable<VehicleResponse>>>> GetAllVehicles()
+        public async Task<ActionResult<Result<IEnumerable<VehicleResponse>>>> GetAllVehicles([FromQuery] Guid? userId)
         {
-            var result = await _vehicleService.GetAllVehiclesAsync();
+            var result = await _vehicleService.GetAllVehiclesAsync(userId);
             return HandleResult(result);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Result<VehicleResponse>>> GetVehicleById(Guid id)
+        public async Task<ActionResult<Result<VehicleResponse>>> GetVehicleById(Guid id, Guid? userId)
         {
-            var result = await _vehicleService.GetVehicleByIdAsync(id);
+            var result = await _vehicleService.GetVehicleByIdAsync(id, userId);
             return HandleResult(result);
         }
 

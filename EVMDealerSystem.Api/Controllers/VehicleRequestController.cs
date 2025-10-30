@@ -1,9 +1,11 @@
 ﻿using EVMDealerSystem.BusinessLogic.Commons;
+using EVMDealerSystem.BusinessLogic.Models.Request.Inventory;
 using EVMDealerSystem.BusinessLogic.Models.Request.VehicleRequest;
 using EVMDealerSystem.BusinessLogic.Models.Responses;
 using EVMDealerSystem.BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace EVMDealerSystem.Api.Controllers
 {
@@ -19,9 +21,23 @@ namespace EVMDealerSystem.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<Result<IEnumerable<VehicleRequestResponse>>>> GetAllRequests()
+        public async Task<ActionResult<Result<PagedList<VehicleRequestResponse>>>> GetAllRequests([FromQuery] Guid? userId, [FromQuery] VehicleRequestParams parameters)
         {
-            var result = await _vehicleRequestService.GetAllVehicleRequestsAsync();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(Result<PagedList<VehicleRequestResponse>>.Invalid("Invalid pagination or filter parameters."));
+            }
+            var result = await _vehicleRequestService.GetAllVehicleRequestsAsync(userId, parameters);
+
+            if (result.IsSuccess && result.Data != null)
+            {
+                var pagedList = result.Data;
+
+                Response.Headers.Append("Pagination", JsonSerializer.Serialize(pagedList.MetaData));
+
+                return Ok(pagedList.ToList());
+            }
+
             return HandleResult(result);
         }
 
@@ -77,15 +93,48 @@ namespace EVMDealerSystem.Api.Controllers
             return HandleResult(result);
         }
 
-        [HttpPost("approve")]
-        public async Task<ActionResult<Result<VehicleRequestResponse>>> ApproveRequest(Guid id, [FromQuery] Guid evmStaffId)
+        
+        [HttpPost("{id}/approve-manager")]
+        public async Task<ActionResult<Result<VehicleRequestResponse>>> ApproveByDealerManager(Guid id, [FromQuery] Guid managerId)
+        {
+            if (managerId == Guid.Empty)
+                return BadRequest(Result<VehicleRequestResponse>.Invalid("Manager ID is required."));
+
+            var result = await _vehicleRequestService.ApproveByDealerManagerAsync(id, managerId);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{id}/reject-manager")]
+        public async Task<ActionResult<Result<VehicleRequestResponse>>> RejectByDealerManager(Guid id, [FromQuery] Guid managerId, [FromBody] RejectionRequest rejection)
+        {
+            if (managerId == Guid.Empty)
+                return BadRequest(Result<VehicleRequestResponse>.Invalid("Manager ID is required."));
+            if (string.IsNullOrWhiteSpace(rejection?.Reason))
+                return BadRequest(Result<VehicleRequestResponse>.Invalid("Rejection reason is required in the request body."));
+
+            var result = await _vehicleRequestService.RejectByDealerManagerAsync(id, managerId, rejection.Reason);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{id}/approve-evm")]
+        public async Task<ActionResult<Result<VehicleRequestResponse>>> ApproveByEVM(Guid id, [FromQuery] Guid evmStaffId)
         {
             if (evmStaffId == Guid.Empty)
-            {
-                return BadRequest(Result<VehicleRequestResponse>.Invalid("Approver ID is required."));
-            }
+                return BadRequest(Result<VehicleRequestResponse>.Invalid("EVM Staff ID is required."));
 
-            var result = await _vehicleRequestService.ApproveVehicleRequestAsync(id, evmStaffId);
+            var result = await _vehicleRequestService.ApproveByEVMAsync(id, evmStaffId);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{id}/reject-evm")]
+        public async Task<ActionResult<Result<VehicleRequestResponse>>> RejectByEVM(Guid id, [FromQuery] Guid evmStaffId, [FromBody] RejectionRequest rejection)
+        {
+            if (evmStaffId == Guid.Empty)
+                return BadRequest(Result<VehicleRequestResponse>.Invalid("EVM Staff ID is required."));
+            if (string.IsNullOrWhiteSpace(rejection?.Reason))
+                return BadRequest(Result<VehicleRequestResponse>.Invalid("Rejection reason is required in the request body."));
+
+            var result = await _vehicleRequestService.RejectByEVMAsync(id, evmStaffId, rejection.Reason);
             return HandleResult(result);
         }
     }

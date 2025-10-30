@@ -27,9 +27,13 @@ namespace EVMDealerSystem.DataAccess.Repository
                 .Include(r => r.ApprovedByNavigation);
         }
 
-        public async Task<IEnumerable<VehicleRequest>> GetAllVehicleRequestsAsync()
+        public async Task<IQueryable<VehicleRequest>> GetAllVehicleRequestsAsync()
         {
-            return await GetQueryWithIncludes().ToListAsync();
+            return _context.VehicleRequests
+        .Include(vr => vr.CreatedByNavigation)
+        .Include(vr => vr.Dealer)
+        .Include(vr => vr.Vehicle)
+        .AsNoTracking();
         }
 
         public async Task<VehicleRequest?> GetVehicleRequestByIdAsync(Guid id)

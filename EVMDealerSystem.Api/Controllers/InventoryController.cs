@@ -4,6 +4,7 @@ using EVMDealerSystem.BusinessLogic.Models.Responses;
 using EVMDealerSystem.BusinessLogic.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace EVMDealerSystem.Api.Controllers
 {
@@ -18,12 +19,12 @@ namespace EVMDealerSystem.Api.Controllers
             _inventoryService = inventoryService;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<Result<IEnumerable<InventoryResponse>>>> GetAllInventories()
-        {
-            var result = await _inventoryService.GetAllInventoriesAsync();
-            return HandleResult(result);
-        }
+        //[HttpGet]
+        //public async Task<ActionResult<Result<IEnumerable<InventoryResponse>>>> GetAllInventories()
+        //{
+        //    var result = await _inventoryService.GetAllInventoriesAsync();
+        //    return HandleResult(result);
+        //}
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Result<InventoryResponse>>> GetInventoryById(Guid id)
@@ -95,6 +96,25 @@ namespace EVMDealerSystem.Api.Controllers
 
             var result = await _inventoryService.GetAvailableStockQuantityForVehicleAsync(vehicleId);
             return HandleResult(result);
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<InventoryResponse>>> GetFilteredInventories([FromQuery] InventoryParams parameters)
+        {
+            var result = await _inventoryService.GetInventoriesWithPagingAsync(parameters);
+
+            if (result.ResultStatus == ResultStatus.Success && result.Data != null)
+            {
+                var pagedList = result.Data;
+
+                Response.Headers.Append("Pagination", JsonSerializer.Serialize(pagedList.MetaData));
+
+                return Ok(pagedList.ToList());
+            }
+
+            if (result.ResultStatus == ResultStatus.NotFound) return NotFound(result.Messages);
+            if (result.ResultStatus == ResultStatus.Invalid) return BadRequest(result.Messages);
+            return StatusCode(500, result.Messages);
         }
     }
 }

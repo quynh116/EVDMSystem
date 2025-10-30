@@ -20,6 +20,9 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task UpdateRangeInventoryAsync(IEnumerable<Inventory> inventories);
         Task<int> CountAvailableStockByVehicleIdAsync(Guid vehicleId);
         Task<IEnumerable<Inventory>> GetReservedInventoryByRequestIdAsync(Guid requestId);
+        Task<IReadOnlyDictionary<Guid, int>> GetStockCountByVehicleAndDealerAsync(Guid? dealerId = null);
+        Task<IQueryable<Inventory>> GetInventoryQueryAsync();
+
         Task<IEnumerable<Inventory>> GetByDealerIdAsync(Guid dealerId);
     }
 }

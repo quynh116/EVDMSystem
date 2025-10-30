@@ -18,10 +18,13 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses.VehicleResponse
         public decimal? BatteryCapacity { get; set; }
         public int? RangePerCharge { get; set; }
         public decimal BasePrice { get; set; }
+        public decimal FinalPrice { get; set; }
         public string? Status { get; set; }
         public DateTime? LaunchDate { get; set; }
         public Guid EvmId { get; set; }
-        public string? EvmName { get; set; } 
+        public Guid? DealerId { get; set; }
+        public string? EvmName { get; set; }
+        public int CurrentStock { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

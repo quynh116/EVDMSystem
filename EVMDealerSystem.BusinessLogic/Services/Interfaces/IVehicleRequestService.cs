@@ -11,11 +11,15 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
 {
     public interface IVehicleRequestService
     {
-        Task<Result<IEnumerable<VehicleRequestResponse>>> GetAllVehicleRequestsAsync();
+        Task<Result<PagedList<VehicleRequestResponse>>> GetAllVehicleRequestsAsync(Guid? userId, VehicleRequestParams pagingParams);
         Task<Result<VehicleRequestResponse>> GetVehicleRequestByIdAsync(Guid id);
         Task<Result<VehicleRequestResponse>> CreateVehicleRequestAsync(VehicleRequestCreateRequest request);
         Task<Result<VehicleRequestResponse>> UpdateVehicleRequestAsync(Guid id, VehicleRequestUpdateRequest request);
         Task<Result<VehicleRequestResponse>> ApproveVehicleRequestAsync(Guid requestId, Guid evmStaffId); 
         Task<Result<bool>> DeleteVehicleRequestAsync(Guid id);
+        Task<Result<VehicleRequestResponse>> ApproveByDealerManagerAsync(Guid requestId, Guid managerId);
+        Task<Result<VehicleRequestResponse>> RejectByDealerManagerAsync(Guid requestId, Guid managerId, string reason);
+        Task<Result<VehicleRequestResponse>> ApproveByEVMAsync(Guid requestId, Guid evmStaffId);
+        Task<Result<VehicleRequestResponse>> RejectByEVMAsync(Guid requestId, Guid evmStaffId, string reason);
     }
 }
