@@ -7,6 +7,7 @@ using EVMDealerSystem.BusinessLogic.Models.Request;
 using EVMDealerSystem.BusinessLogic.Commons;
 using EVMDealerSystem.DataAccess.Models;
 using Microsoft.EntityFrameworkCore;
+using EVMDealerSystem.BusinessLogic.Models.Responses;
 
 namespace EVMDealerSystem.BusinessLogic.Services
 {
@@ -207,6 +208,11 @@ namespace EVMDealerSystem.BusinessLogic.Services
             };
 
             return Result<BusinessLogic.Models.Responses.OrderResponse>.Success(resp);
+        }
+
+        Task<Result<OrderResponse>> IOrderService.CreateOrderAsync(OrderCreateRequest request, Guid dealerStaffId)
+        {
+            throw new NotImplementedException();
         }
     }
 }
