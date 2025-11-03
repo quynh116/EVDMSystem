@@ -209,10 +209,5 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
             return Result<BusinessLogic.Models.Responses.OrderResponse>.Success(resp);
         }
-
-        Task<Result<OrderResponse>> IOrderService.CreateOrderAsync(OrderCreateRequest request, Guid dealerStaffId)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
