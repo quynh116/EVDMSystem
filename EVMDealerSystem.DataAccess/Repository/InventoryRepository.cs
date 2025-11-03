@@ -109,7 +109,14 @@ namespace EVMDealerSystem.DataAccess.Repository
 
             if (dealerId.HasValue)
             {
-                query = query.Where(i => i.DealerId == dealerId.Value);
+                query = query.Where(i => i.DealerId == dealerId.Value &&
+            i.Status == "Allocated to Dealer");
+            }
+            else
+            {
+                query = query.Where(i =>
+                    i.DealerId == null &&
+                    i.Status == "At Manufacturer"); 
             }
 
             return await query

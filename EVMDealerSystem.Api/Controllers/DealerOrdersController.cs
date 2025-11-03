@@ -10,7 +10,7 @@ namespace EVMDealerSystem.Api.Controllers
 {
     [ApiController]
     [Route("api/dealer/orders")]
-    [Authorize]
+    //[Authorize]
     public class DealerOrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -21,13 +21,13 @@ namespace EVMDealerSystem.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] OrderCreateRequest request)
+        public async Task<IActionResult> Create([FromBody] OrderCreateRequest request,Guid dealerStaffId)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("id") ?? User.FindFirst("sub");
-            if (userIdClaim == null) return Unauthorized();
+            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("id") ?? User.FindFirst("sub");
+            //if (userIdClaim == null) return Unauthorized();
 
-            if (!Guid.TryParse(userIdClaim.Value, out var dealerStaffId))
-                return Unauthorized();
+            //if (!Guid.TryParse(userIdClaim.Value, out var dealerStaffId))
+            //    return Unauthorized();
 
             var result = await _orderService.CreateOrderAsync(request, dealerStaffId);
             if (result.IsSuccess)

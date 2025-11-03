@@ -70,7 +70,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             // Tìm inventory
             var invQuery = await _inventoryRepo.GetInventoryQueryAsync();
             var inventory = await invQuery
-                .Where(i => i.VehicleId == request.VehicleId && i.DealerId == request.DealerId && i.Status.ToLower() == "available")
+                .Where(i => i.VehicleId == request.VehicleId && i.DealerId == request.DealerId && i.Status.ToLower() == "Allocated to Dealer")
                 .Include(i => i.Vehicle)
                 .FirstOrDefaultAsync();
 

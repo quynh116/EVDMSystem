@@ -169,6 +169,14 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 }
 
                 Guid? targetDealerId = null;
+                if (userId.HasValue && userId != Guid.Empty)
+                {
+                    var user = await _userRepository.GetUserByIdAsync(userId.Value);
+                    if (user != null && user.DealerId.HasValue)
+                    {
+                        targetDealerId = user.DealerId.Value;
+                    }
+                }
                 int currentStock = 0;
                 var stockMap = await _inventoryRepository.GetStockCountByVehicleAndDealerAsync(targetDealerId);
                 if (stockMap.ContainsKey(id))
