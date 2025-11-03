@@ -30,5 +30,10 @@ namespace EVMDealerSystem.DataAccess.Repository
                 .Where(c => c.DealerStaffId == staffId)
                 .ToListAsync();
         }
+        public async Task<Customer?> GetByPhoneAsync(string phone)
+        {
+            return await _context.Customers.FirstOrDefaultAsync(c => c.Phone == phone);
+        }
+
     }
 }

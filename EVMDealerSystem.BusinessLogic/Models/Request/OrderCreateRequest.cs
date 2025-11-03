@@ -22,7 +22,6 @@ namespace EVMDealerSystem.BusinessLogic.Models.Request
     {
         [Required] public Guid VehicleId { get; set; }
         [Required] public Guid DealerId { get; set; }
-        public Guid? CustomerId { get; set; }
         public CustomerCreateRequest? NewCustomer { get; set; }
 
         [Required]
@@ -30,6 +29,5 @@ namespace EVMDealerSystem.BusinessLogic.Models.Request
         public string PaymentType { get; set; } = "full";
 
         public decimal? TotalPrice { get; set; }
-        public FeedbackCreateRequest? Feedback { get; set; }
     }
 }
