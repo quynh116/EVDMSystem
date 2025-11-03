@@ -105,7 +105,10 @@ public partial class EVMDealerSystemContext : DbContext
             entity.Property(e => e.Note).HasColumnName("note");
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
-                .HasColumnName("phone");
+                .HasColumnName("phone").IsRequired();
+            entity.HasIndex(e => e.Phone)
+                .IsUnique()
+                .HasDatabaseName("UQ_customers_phone");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
             entity.HasOne(d => d.DealerStaff).WithMany(p => p.Customers)
