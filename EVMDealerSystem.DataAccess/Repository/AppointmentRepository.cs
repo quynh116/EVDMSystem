@@ -6,35 +6,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace EVMDealerSystem.DataAccess.Repository
+namespace EVMDealerSystem.DataAccess.Repository.Implementations
 {
     public class AppointmentRepository : IAppointmentRepository
     {
         private readonly EVMDealerSystemContext _context;
-
-        public AppointmentRepository(EVMDealerSystemContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<IEnumerable<Appointment>> GetAllAsync()
-        {
-            return await _context.Appointments
-                .Include(a => a.Customer)
-                .Include(a => a.Vehicle)
-                .Include(a => a.DealerStaff)
-                .OrderByDescending(a => a.AppointmentDate)
-                .ToListAsync();
-        }
-
-        public async Task<Appointment?> GetByIdAsync(Guid id)
-        {
-            return await _context.Appointments
-                .Include(a => a.Customer)
-                .Include(a => a.Vehicle)
-                .Include(a => a.DealerStaff)
-                .FirstOrDefaultAsync(a => a.Id == id);
-        }
+        public AppointmentRepository(EVMDealerSystemContext context) { _context = context; }
 
         public async Task<Appointment> AddAsync(Appointment appointment)
         {
@@ -43,40 +20,40 @@ namespace EVMDealerSystem.DataAccess.Repository
             return appointment;
         }
 
-        public async Task UpdateAsync(Appointment appointment)
+        public async Task<Appointment?> GetByIdAsync(Guid id)
+            => await _context.Appointments.FindAsync(id);
+
+        public async Task<IEnumerable<Appointment>> GetAllAsync()
+            => await _context.Appointments.OrderByDescending(a => a.AppointmentDate).ToListAsync();
+
+        public async Task<Appointment> UpdateAsync(Appointment appointment)
         {
             _context.Appointments.Update(appointment);
             await _context.SaveChangesAsync();
+            return appointment;
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
-            var existing = await _context.Appointments.FindAsync(id);
-            if (existing != null)
-            {
-                _context.Appointments.Remove(existing);
-                await _context.SaveChangesAsync();
-            }
+            var a = await _context.Appointments.FindAsync(id);
+            if (a == null) return false;
+            _context.Appointments.Remove(a);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task<IEnumerable<Appointment>> GetByStaffIdAsync(Guid staffId)
+        public async Task<IEnumerable<Appointment>> GetByDealerIdAsync(Guid dealerStaffId)
+            => await _context.Appointments.Where(a => a.DealerStaffId == dealerStaffId).ToListAsync();
+
+        public async Task<IEnumerable<Appointment>> GetByVehicleAndDateAsync(Guid vehicleId, DateTime date)
         {
+            var start = date.Date;
+            var end = start.AddDays(1);
             return await _context.Appointments
-                .Include(a => a.Customer)
-                .Include(a => a.Vehicle)
-                .Where(a => a.DealerStaffId == staffId)
-                .OrderByDescending(a => a.AppointmentDate)
+                .Where(a => a.VehicleId == vehicleId && a.AppointmentDate >= start && a.AppointmentDate < end)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Appointment>> GetByCustomerIdAsync(Guid customerId)
-        {
-            return await _context.Appointments
-                .Include(a => a.Vehicle)
-                .Include(a => a.DealerStaff)
-                .Where(a => a.CustomerId == customerId)
-                .OrderByDescending(a => a.AppointmentDate)
-                .ToListAsync();
-        }
+        public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
     }
 }
