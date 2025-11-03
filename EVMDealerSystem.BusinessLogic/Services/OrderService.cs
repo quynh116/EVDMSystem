@@ -38,10 +38,36 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
         public async Task<Result<OrderResponse>> CreateOrderAsync(OrderCreateRequest request, Guid dealerStaffId)
         {
-            if (request.CustomerId == null && request.NewCustomer == null)
-                return Result<OrderResponse>.Invalid("Either CustomerId or NewCustomer must be provided.");
+            if (request.NewCustomer == null || string.IsNullOrWhiteSpace(request.NewCustomer.Phone))
+                return Result<OrderResponse>.Invalid("Customer phone must be provided.");
 
-            // find an available inventory item for this vehicle at the dealer
+            // Tìm customer theo phone
+            var existingCustomer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.Phone == request.NewCustomer.Phone);
+
+            Guid customerId;
+            if (existingCustomer != null)
+            {
+                customerId = existingCustomer.Id;
+            }
+            else
+            {
+                var newCust = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = request.NewCustomer.FullName,
+                    Phone = request.NewCustomer.Phone,
+                    Email = request.NewCustomer.Email,
+                    Address = request.NewCustomer.Address,
+                    DealerStaffId = dealerStaffId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _context.Customers.AddAsync(newCust);
+                await _context.SaveChangesAsync();
+                customerId = newCust.Id;
+            }
+
+            // Tìm inventory
             var invQuery = await _inventoryRepo.GetInventoryQueryAsync();
             var inventory = await invQuery
                 .Where(i => i.VehicleId == request.VehicleId && i.DealerId == request.DealerId && i.Status.ToLower() == "available")
@@ -49,134 +75,68 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 .FirstOrDefaultAsync();
 
             if (inventory == null)
-                return Result<OrderResponse>.NotFound("No available inventory for the selected vehicle at this dealer.");
+                return Result<OrderResponse>.NotFound("No available inventory for this vehicle at dealer.");
 
-            using (var tx = await _context.Database.BeginTransactionAsync())
+            using var tx = await _context.Database.BeginTransactionAsync();
+            try
             {
-                try
+                var order = new Order
                 {
-                    Guid customerId;
-                    if (request.CustomerId.HasValue && request.CustomerId != Guid.Empty)
-                    {
-                        var existing = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
-                        if (existing == null)
-                            return Result<OrderResponse>.NotFound("Customer not found.");
-                        customerId = existing.Id;
-                    }
-                    else
-                    {
-                        // create customer directly via DbContext because repository interface lacks add method
-                        var c = new Customer
-                        {
-                            Id = Guid.NewGuid(),
-                            FullName = request.NewCustomer!.FullName,
-                            Phone = request.NewCustomer.Phone,
-                            Email = request.NewCustomer.Email,
-                            Address = request.NewCustomer.Address,
-                            DealerStaffId = dealerStaffId,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        await _context.Customers.AddAsync(c);
-                        await _context.SaveChangesAsync();
-                        customerId = c.Id;
-                    }
+                    Id = Guid.NewGuid(),
+                    CustomerId = customerId,
+                    DealerStaffId = dealerStaffId,
+                    VehicleId = request.VehicleId,
+                    DealerId = request.DealerId,
+                    InventoryId = inventory.Id,
+                    TotalPrice = request.TotalPrice ?? (inventory.Vehicle?.BasePrice ?? 0),
+                    OrderStatus = "confirmed",
+                    PaymentStatus = request.PaymentType.ToLower() == "full" ? "paid" : "partial_paid",
+                    PaymentType = request.PaymentType.ToLower(),
+                    CreatedAt = DateTime.UtcNow
+                };
 
-                    var order = new Order
-                    {
-                        Id = Guid.NewGuid(),
-                        CustomerId = customerId,
-                        DealerStaffId = dealerStaffId,
-                        VehicleId = request.VehicleId,
-                        DealerId = request.DealerId,
-                        InventoryId = inventory.Id,
-                        TotalPrice = request.TotalPrice ?? (inventory.Vehicle?.BasePrice ?? 0),
-                        OrderStatus = "confirmed",
-                        PaymentStatus = request.PaymentType.ToLower() == "full" ? "paid" : "partial_paid",
-                        PaymentType = request.PaymentType.ToLower(),
-                        CreatedAt = DateTime.UtcNow
-                    };
+                var created = await _orderRepo.AddAsync(order);
 
-                    var created = await _orderRepo.AddAsync(order);
+                inventory.Status = "sold";
+                inventory.UpdatedAt = DateTime.UtcNow;
+                await _inventoryRepo.UpdateInventoryAsync(inventory);
 
-                    // update inventory status to sold
-                    inventory.Status = "sold";
-                    inventory.UpdatedAt = DateTime.UtcNow;
-                    await _inventoryRepo.UpdateInventoryAsync(inventory);
+                await tx.CommitAsync();
 
-                    // optional feedback
-                    if (request.Feedback != null && _feedbackRepo != null)
-                    {
-                        var fb = new Feedback
-                        {
-                            Id = Guid.NewGuid(),
-                            CustomerId = customerId,
-                            OrderId = created.Id,
-                            Subject = request.Feedback.Subject ?? "Order Feedback",
-                            Content = request.Feedback.Content ?? string.Empty,
-                            FeedbackType = "general",
-                            Status = "open",
-                            CreatedAt = DateTime.UtcNow,
-                            Note = request.Feedback.Rating?.ToString()
-                        };
-                        await _feedbackRepo.AddAsync(fb);
-                    }
-                    else if (request.Feedback != null && _feedbackRepo == null)
-                    {
-                        // fallback: insert feedback via context
-                        var fb2 = new Feedback
-                        {
-                            Id = Guid.NewGuid(),
-                            CustomerId = customerId,
-                            OrderId = created.Id,
-                            Subject = request.Feedback.Subject ?? "Order Feedback",
-                            Content = request.Feedback.Content ?? string.Empty,
-                            FeedbackType = "general",
-                            Status = "open",
-                            CreatedAt = DateTime.UtcNow,
-                            Note = request.Feedback.Rating?.ToString()
-                        };
-                        await _context.Feedbacks.AddAsync(fb2);
-                        await _context.SaveChangesAsync();
-                    }
+                var cust = await _customerRepo.GetByIdAsync(customerId);
+                var user = await _userRepo.GetUserByIdAsync(dealerStaffId);
 
-                    await tx.CommitAsync();
-
-                    // Build response (light)
-                    var cust = await _customerRepo.GetByIdAsync(customerId);
-                    var user = await _userRepo.GetUserByIdAsync(dealerStaffId);
-
-                    var resp = new BusinessLogic.Models.Responses.OrderResponse
-                    {
-                        Id = created.Id,
-                        CustomerId = created.CustomerId,
-                        CustomerName = cust?.FullName ?? string.Empty,
-                        CustomerPhone = cust?.Phone,
-                        DealerStaffId = created.DealerStaffId,
-                        DealerStaffName = user?.FullName ?? string.Empty,
-                        VehicleId = created.VehicleId,
-                        VehicleModelName = inventory.Vehicle?.ModelName ?? string.Empty,
-                        VehicleVersion = inventory.Vehicle?.Version,
-                        DealerId = created.DealerId,
-                        DealerName = inventory.Dealer?.Name ?? string.Empty,
-                        InventoryId = created.InventoryId,
-                        VinNumber = inventory.VinNumber,
-                        TotalPrice = created.TotalPrice,
-                        OrderStatus = created.OrderStatus,
-                        PaymentStatus = created.PaymentStatus,
-                        PaymentType = created.PaymentType,
-                        CreatedAt = created.CreatedAt,
-                        Note = created.Note
-                    };
-
-                    return Result<BusinessLogic.Models.Responses.OrderResponse>.Success(resp, "Order created");
-                }
-                catch (Exception ex)
+                var resp = new OrderResponse
                 {
-                    await tx.RollbackAsync();
-                    return Result<BusinessLogic.Models.Responses.OrderResponse>.InternalServerError("Create order failed: " + ex.Message);
-                }
+                    Id = created.Id,
+                    CustomerId = cust!.Id,
+                    CustomerName = cust.FullName,
+                    CustomerPhone = cust.Phone,
+                    DealerStaffId = dealerStaffId,
+                    DealerStaffName = user?.FullName ?? string.Empty,
+                    VehicleId = inventory.VehicleId,
+                    VehicleModelName = inventory.Vehicle?.ModelName ?? string.Empty,
+                    VehicleVersion = inventory.Vehicle?.Version,
+                    DealerId = created.DealerId,
+                    DealerName = inventory.Dealer?.Name ?? string.Empty,
+                    InventoryId = inventory.Id,
+                    VinNumber = inventory.VinNumber,
+                    TotalPrice = created.TotalPrice,
+                    OrderStatus = created.OrderStatus,
+                    PaymentStatus = created.PaymentStatus,
+                    PaymentType = created.PaymentType,
+                    CreatedAt = created.CreatedAt
+                };
+
+                return Result<OrderResponse>.Success(resp, "Order created successfully.");
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                return Result<OrderResponse>.InternalServerError("Failed to create order: " + ex.Message);
             }
         }
+
 
         public async Task<Result<BusinessLogic.Models.Responses.OrderResponse>> GetByIdAsync(Guid orderId)
         {
