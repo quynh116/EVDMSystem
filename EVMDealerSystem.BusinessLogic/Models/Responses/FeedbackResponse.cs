@@ -2,13 +2,14 @@
 
 namespace EVMDealerSystem.BusinessLogic.Models.Responses
 {
-    public class AppointmentResponse
+    public class FeedbackResponse
     {
         public Guid Id { get; set; }
         public Guid CustomerId { get; set; }
-        public Guid DealerStaffId { get; set; }
-        public Guid VehicleId { get; set; }
-        public DateTime AppointmentDate { get; set; }
+        public Guid OrderId { get; set; }
+        public string Subject { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string? FeedbackType { get; set; }
         public string? Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

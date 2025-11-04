@@ -34,6 +34,29 @@ namespace EVMDealerSystem.DataAccess.Repository
         {
             return await _context.Customers.FirstOrDefaultAsync(c => c.Phone == phone);
         }
+        public async Task<IEnumerable<Customer>> GetAllAsync() => await _context.Customers.ToListAsync();
 
+        public async Task<Customer> AddAsync(Customer customer)
+        {
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+            return customer;
+        }
+
+        public async Task<Customer> UpdateAsync(Customer customer)
+        {
+            _context.Customers.Update(customer);
+            await _context.SaveChangesAsync();
+            return customer;
+        }
+
+        public async Task<bool> DeleteAsync(Guid id)
+        {
+            var c = await _context.Customers.FindAsync(id);
+            if (c == null) return false;
+            _context.Customers.Remove(c);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
