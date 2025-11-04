@@ -289,7 +289,7 @@ public partial class EVMDealerSystemContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("payment_type");
             entity.Property(e => e.TotalPrice)
-                .HasColumnType("decimal(10, 2)")
+                .HasColumnType("decimal(18, 2)")
                 .HasColumnName("total_price");
             entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
 
