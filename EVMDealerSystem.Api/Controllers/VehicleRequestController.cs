@@ -67,18 +67,7 @@ namespace EVMDealerSystem.Api.Controllers
             return HandleResult(result);
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<Result<VehicleRequestResponse>>> UpdateRequest(Guid id, [FromBody] VehicleRequestUpdateRequest request)
-        {
-            if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray();
-                return BadRequest(Result<VehicleRequestResponse>.Invalid("Invalid update data.", errors));
-            }
-
-            var result = await _vehicleRequestService.UpdateVehicleRequestAsync(id, request);
-            return HandleResult(result);
-        }
+        
 
         [HttpDelete("{id}")]
         public async Task<ActionResult<Result<bool>>> DeleteRequest(Guid id)
@@ -117,12 +106,12 @@ namespace EVMDealerSystem.Api.Controllers
         }
 
         [HttpPost("{id}/approve-evm")]
-        public async Task<ActionResult<Result<VehicleRequestResponse>>> ApproveByEVM(Guid id, [FromQuery] Guid evmStaffId)
+        public async Task<ActionResult<Result<VehicleRequestResponse>>> ApproveByEVM(Guid id, [FromQuery] Guid evmStaffId, EVMApproveRequest eVMApproveRequest)
         {
             if (evmStaffId == Guid.Empty)
                 return BadRequest(Result<VehicleRequestResponse>.Invalid("EVM Staff ID is required."));
 
-            var result = await _vehicleRequestService.ApproveByEVMAsync(id, evmStaffId);
+            var result = await _vehicleRequestService.ApproveByEVMAsync(id, evmStaffId, eVMApproveRequest);
             return HandleResult(result);
         }
 

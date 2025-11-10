@@ -22,9 +22,11 @@ namespace EVMDealerSystem.DataAccess.Repository
         {
             return _context.VehicleRequests
                 .Include(r => r.Dealer)
-                .Include(r => r.Vehicle)
                 .Include(r => r.CreatedByNavigation)
-                .Include(r => r.ApprovedByNavigation);
+                .Include(r => r.ApprovedByNavigation)
+                .Include(r => r.CanceledByNavigation)
+                .Include(r => r.VehicleRequestItems)
+                    .ThenInclude(vri => vri.Vehicle);
         }
 
         public async Task<IQueryable<VehicleRequest>> GetAllVehicleRequestsAsync()
@@ -32,13 +34,14 @@ namespace EVMDealerSystem.DataAccess.Repository
             return _context.VehicleRequests
         .Include(vr => vr.CreatedByNavigation)
         .Include(vr => vr.Dealer)
-        .Include(vr => vr.Vehicle)
+        .Include(vr => vr.VehicleRequestItems).ThenInclude(vri => vri.Vehicle)
         .AsNoTracking();
         }
 
         public async Task<VehicleRequest?> GetVehicleRequestByIdAsync(Guid id)
         {
             return await GetQueryWithIncludes()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
 
@@ -51,8 +54,29 @@ namespace EVMDealerSystem.DataAccess.Repository
 
         public async Task UpdateVehicleRequestAsync(VehicleRequest request)
         {
-            _context.VehicleRequests.Update(request);
+            var trackedRequest = await _context.VehicleRequests.FindAsync(request.Id);
+
+            if (trackedRequest == null)
+            {
+                throw new InvalidOperationException($"VehicleRequest with ID {request.Id} not found.");
+            }
+
+            trackedRequest.Status = request.Status;
+
+            if (request.ApprovedBy.HasValue)
+            {
+                trackedRequest.ApprovedBy = request.ApprovedBy;
+            }
+            trackedRequest.ApprovedAt = request.ApprovedAt;
+
+            trackedRequest.CancellationReason = request.CancellationReason;
+            trackedRequest.CanceledBy = request.CanceledBy;
+            trackedRequest.CanceledAt = request.CanceledAt;
+            trackedRequest.ExpectedDeliveryDate = request.ExpectedDeliveryDate;
+            trackedRequest.AllocationConfirmationDate = request.AllocationConfirmationDate;
+
             await _context.SaveChangesAsync();
+
         }
 
         public async Task DeleteVehicleRequestAsync(Guid id)

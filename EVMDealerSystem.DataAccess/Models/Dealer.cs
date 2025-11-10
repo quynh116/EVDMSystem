@@ -38,4 +38,5 @@ public partial class Dealer
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 
     public virtual ICollection<VehicleRequest> VehicleRequests { get; set; } = new List<VehicleRequest>();
+    public virtual ICollection<DealerVehiclePrice> DealerVehiclePrices { get; set; } = new List<DealerVehiclePrice>();
 }

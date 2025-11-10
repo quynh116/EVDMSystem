@@ -40,8 +40,10 @@ public partial class EVMDealerSystemContext : DbContext
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
     public virtual DbSet<VehicleRequest> VehicleRequests { get; set; }
+    public virtual DbSet<VehicleRequestItem> VehicleRequestItems { get; set; }
+    public virtual DbSet<DealerVehiclePrice> DealerVehiclePrices { get; set; }
 
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Appointment>(entity =>
@@ -244,6 +246,8 @@ public partial class EVMDealerSystemContext : DbContext
             entity.Property(e => e.VinNumber)
                 .HasMaxLength(255)
                 .HasColumnName("vin_number");
+            entity.Property(e => e.ShippingDate).HasColumnName("shipping_date");
+            entity.Property(e => e.ReceivedDate).HasColumnName("received_date");
 
             entity.HasOne(d => d.Dealer).WithMany(p => p.Inventories)
                 .HasForeignKey(d => d.DealerId)
@@ -516,12 +520,11 @@ public partial class EVMDealerSystemContext : DbContext
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.DealerId).HasColumnName("dealer_id");
             entity.Property(e => e.Note).HasColumnName("note");
-            entity.Property(e => e.Quantity).HasColumnName("quantity");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");
-            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
-
+            entity.Property(e => e.ExpectedDeliveryDate).HasColumnName("expected_delivery_date");
+            entity.Property(e => e.AllocationConfirmationDate).HasColumnName("allocation_confirmation_date");
             entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.VehicleRequestApprovedByNavigations)
                 .HasForeignKey(d => d.ApprovedBy)
                 .HasConstraintName("FK__vehicle_r__appro__74AE54BC");
@@ -536,10 +539,7 @@ public partial class EVMDealerSystemContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__vehicle_r__deale__72C60C4A");
 
-            entity.HasOne(d => d.Vehicle).WithMany(p => p.VehicleRequests)
-                .HasForeignKey(d => d.VehicleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__vehicle_r__vehic__71D1E811");
+            
             entity.Property(e => e.CanceledBy).HasColumnName("canceled_by");
             entity.Property(e => e.CanceledAt).HasColumnName("canceled_at");
             entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
@@ -548,6 +548,63 @@ public partial class EVMDealerSystemContext : DbContext
         .HasForeignKey(d => d.CanceledBy)
         .HasConstraintName("FK_vehicle_requests_canceled_by");
         });
+        modelBuilder.Entity<VehicleRequestItem>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__vehiclerequestitems__3213E83F");
+
+            entity.ToTable("vehicle_request_items");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("(newid())")
+                .HasColumnName("id");
+            entity.Property(e => e.VehicleRequestId).HasColumnName("vehicle_request_id");
+            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.Quantity).HasColumnName("quantity");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasOne(d => d.VehicleRequest).WithMany(p => p.VehicleRequestItems)
+                .HasForeignKey(d => d.VehicleRequestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_vehicle_request_items_vehicle_request_id");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.VehicleRequestItems)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_vehicle_request_items_vehicle_id");
+        });
+
+        // =============== DEALER VEHICLE PRICE =====================
+        modelBuilder.Entity<DealerVehiclePrice>(entity =>
+        {
+            entity.HasKey(e => new { e.DealerId, e.VehicleId })
+                .HasName("PK_dealer_vehicle_prices");
+
+            entity.ToTable("dealer_vehicle_prices");
+
+            entity.Property(e => e.DealerId).HasColumnName("dealer_id");
+            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.SellingPrice)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("selling_price");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Dealer).WithMany(p => p.DealerVehiclePrices)
+                .HasForeignKey(d => d.DealerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_dealer_vehicle_prices_dealer_id");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.DealerVehiclePrices)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_dealer_vehicle_prices_vehicle_id");
+        });
+
 
         OnModelCreatingPartial(modelBuilder);
     }

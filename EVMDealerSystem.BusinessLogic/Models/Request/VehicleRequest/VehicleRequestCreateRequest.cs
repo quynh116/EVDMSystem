@@ -11,11 +11,18 @@ namespace EVMDealerSystem.BusinessLogic.Models.Request.VehicleRequest
     {
         [Required]
         public Guid CreatedBy { get; set; }
-        [Required]
-        public Guid VehicleId { get; set; }
+       
         [Required]
         public Guid DealerId { get; set; }
-        public int Quantity { get; set; }
         public string? Note { get; set; }
+        public List<VehicleRequestItemDto> Items { get; set; } = new List<VehicleRequestItemDto>();
+    }
+
+    public class VehicleRequestItemDto
+    {
+        [Required]
+        public Guid VehicleId { get; set; } 
+
+        public int Quantity { get; set; } 
     }
 }

@@ -140,5 +140,25 @@ namespace EVMDealerSystem.DataAccess.Repository
                 .Where(i => i.DealerId == dealerId)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Inventory>> FindAvailableStockForAllocationAsync(Guid vehicleId, int quantity)
+        {
+            if (quantity <= 0)
+            {
+                return new List<Inventory>();
+            }
+
+            var availableStock = await _context.Inventories
+                .Where(i =>
+                    i.VehicleId == vehicleId &&
+                    i.Status == "At Manufacturer" && 
+                    i.DealerId == null 
+                )
+                .OrderBy(i => i.CreatedAt) 
+                .Take(quantity)
+                .ToListAsync();
+
+            return availableStock;
+        }
     }
 }

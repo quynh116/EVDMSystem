@@ -45,5 +45,6 @@ public partial class Vehicle
 
     public virtual ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
 
-    public virtual ICollection<VehicleRequest> VehicleRequests { get; set; } = new List<VehicleRequest>();
+    public virtual ICollection<DealerVehiclePrice> DealerVehiclePrices { get; set; } = new List<DealerVehiclePrice>();
+    public virtual ICollection<VehicleRequestItem> VehicleRequestItems { get; set; } = new List<VehicleRequestItem>();
 }

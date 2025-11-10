@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using EVMDealerSystem.BusinessLogic.Services.Interfaces;
 using EVMDealerSystem.BusinessLogic.Models.Request;
+//using EVMDealerSystem.BusinessLogic.Models.Request.Appointment;
 
 namespace EVMDealerSystem.Api.Controllers
 {
@@ -67,13 +68,13 @@ namespace EVMDealerSystem.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { id = res.Data.Id }, res.Data);
         }
 
-        [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] AppointmentUpdateRequest request)
-        {
-            var res = await _service.UpdateAsync(id, request);
-            if (!res.IsSuccess) return NotFound(res.Messages);
-            return Ok(res.Data);
-        }
+        //[HttpPut("{id:guid}")]
+        //public async Task<IActionResult> Update(Guid id, [FromBody] AppointmentUpdateRequest request)
+        //{
+        //    var res = await _service.UpdateAsync(id, request);
+        //    if (!res.IsSuccess) return NotFound(res.Messages);
+        //    return Ok(res.Data);
+        //}
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)

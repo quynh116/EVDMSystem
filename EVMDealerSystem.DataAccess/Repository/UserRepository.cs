@@ -37,7 +37,7 @@ namespace EVMDealerSystem.DataAccess.Repository
 
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
-            return await _context.Users.Include(u => u.Role).ToListAsync();
+            return await _context.Users.AsNoTracking().Include(u => u.Role).ToListAsync();
         }
 
         public async Task<Role?> GetRoleByNameAsync(string roleName)

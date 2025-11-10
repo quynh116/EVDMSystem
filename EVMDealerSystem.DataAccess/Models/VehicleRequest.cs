@@ -9,11 +9,7 @@ public partial class VehicleRequest
 
     public Guid CreatedBy { get; set; }
 
-    public Guid VehicleId { get; set; }
-
     public Guid DealerId { get; set; }
-
-    public int Quantity { get; set; }
 
     public string? Status { get; set; }
 
@@ -27,13 +23,14 @@ public partial class VehicleRequest
     public string? CancellationReason { get; set; }
     public Guid? CanceledBy { get; set; }
     public DateTime? CanceledAt { get; set; }
+    public DateTime? ExpectedDeliveryDate { get; set; }
+    public DateTime? AllocationConfirmationDate { get; set; }
     public virtual User? ApprovedByNavigation { get; set; }
     public virtual User? CanceledByNavigation { get; set; }
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual Dealer Dealer { get; set; } = null!;
-
-    public virtual Vehicle Vehicle { get; set; } = null!;
+    public virtual ICollection<VehicleRequestItem> VehicleRequestItems { get; set; } = new List<VehicleRequestItem>();
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 }

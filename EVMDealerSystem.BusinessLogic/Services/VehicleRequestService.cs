@@ -21,21 +21,35 @@ namespace EVMDealerSystem.BusinessLogic.Services
         private readonly IDealerRepository _dealerRepository;
         private readonly IUserRepository _userRepository;
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IVehicleRequestItemRepository _itemRepository;
 
         public VehicleRequestService(IVehicleRequestRepository requestRepository,
                                      IVehicleRepository vehicleRepository,
                                      IDealerRepository dealerRepository,
                                      IUserRepository userRepository,
-                                     IInventoryRepository inventoryRepository)
+                                     IInventoryRepository inventoryRepository,
+                                     IVehicleRequestItemRepository itemRepository)
         {
             _requestRepository = requestRepository;
             _vehicleRepository = vehicleRepository;
             _dealerRepository = dealerRepository;
             _userRepository = userRepository;
             _inventoryRepository = inventoryRepository;
+            _itemRepository = itemRepository;
         }
 
-        private VehicleRequestResponse MapToVehicleRequestResponse(VehicleRequest request)
+        private VehicleRequestItemResponse MapToVehicleRequestItemResponse(VehicleRequestItem item)
+        {
+            return new VehicleRequestItemResponse
+            {
+                Id = item.Id,
+                VehicleId = item.VehicleId,
+                Quantity = item.Quantity,
+                VehicleModelName = item.Vehicle?.ModelName ?? "N/A"
+            };
+        }
+
+        private VehicleRequestResponse MapToVehicleRequestResponse(VehicleRequest request, IEnumerable<VehicleRequestItem> items)
         {
             if (request == null) return null;
 
@@ -44,11 +58,8 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 Id = request.Id,
                 CreatedBy = request.CreatedBy,
                 CreatedByName = request.CreatedByNavigation?.FullName ?? "N/A",
-                VehicleId = request.VehicleId,
-                VehicleModelName = request.Vehicle?.ModelName ?? "N/A",
                 DealerId = request.DealerId,
                 DealerName = request.Dealer?.Name ?? "N/A",
-                Quantity = request.Quantity,
                 Status = request.Status,
                 CreatedAt = request.CreatedAt,
                 ApprovedBy = request.ApprovedBy,
@@ -57,7 +68,10 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 Note = request.Note,
                 CanceledAt = request.CanceledAt,
                 CanceledBy = request.CanceledBy,
-                CancellationReason = request.CancellationReason
+                CancellationReason = request.CancellationReason,
+                ExpectedDeliveryDate = request.ExpectedDeliveryDate,
+                AllocationConfirmationDate = request.AllocationConfirmationDate,
+                Items = items.Select(MapToVehicleRequestItemResponse).ToList()
             };
         }
 
@@ -65,8 +79,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
         {
             try
             {
-                var vehicle = await _vehicleRepository.GetVehicleByIdAsync(request.VehicleId);
-                if (vehicle == null) return Result<VehicleRequestResponse>.NotFound($"Vehicle ID {request.VehicleId} not found.");
 
                 var dealer = await _dealerRepository.GetDealerByIdAsync(request.DealerId);
                 if (dealer == null) return Result<VehicleRequestResponse>.NotFound($"Dealer ID {request.DealerId} not found.");
@@ -82,9 +94,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 {
                     Id = Guid.NewGuid(), 
                     CreatedBy = request.CreatedBy,
-                    VehicleId = request.VehicleId,
                     DealerId = request.DealerId,
-                    Quantity = request.Quantity,
                     Note = request.Note,
                     Status = "Pending Manager Approval", 
                     CreatedAt = DateTime.UtcNow
@@ -92,12 +102,33 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 var addedRequest = await _requestRepository.AddVehicleRequestAsync(newRequest);
 
-               
-                
+                var addedItems = new List<VehicleRequestItem>();
+                foreach (var itemDto in request.Items)
+                {
+                    var vehicle = await _vehicleRepository.GetVehicleByIdAsync(itemDto.VehicleId);
+                    if (vehicle == null) continue; 
+
+                    var newItem = new VehicleRequestItem
+                    {
+                        Id = Guid.NewGuid(),
+                        VehicleRequestId = addedRequest.Id,
+                        VehicleId = itemDto.VehicleId,
+                        Quantity = itemDto.Quantity,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+
+
+                    // Thêm item vào Repository
+                    var addedItem = await _itemRepository.AddItemAsync(newItem); // Cần inject IVehicleRequestItemRepository
+                    addedItems.Add(addedItem);
+                }
+
 
                 var requestWithRelations = await _requestRepository.GetVehicleRequestByIdAsync(addedRequest.Id);
+                var finalItems = await _itemRepository.GetItemsByRequestIdAsync(addedRequest.Id);
 
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(requestWithRelations), "Vehicle request created and stock reserved.");
+                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(requestWithRelations, finalItems), "Vehicle request created and stock reserved.");
             }
             catch (Exception ex)
             {
@@ -151,7 +182,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 pagingParams.PageNumber,
                 pagingParams.PageSize);
 
-                var responseItems = pagedRequests.Select(r => MapToVehicleRequestResponse(r)).ToList();
+                var responseItems = pagedRequests.Select(r => MapToVehicleRequestResponse(r, r.VehicleRequestItems)).ToList();
 
                 var pagedResponse = new PagedList<VehicleRequestResponse>(
                 responseItems,
@@ -175,7 +206,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 {
                     return Result<VehicleRequestResponse>.NotFound($"Vehicle request with ID {id} not found.");
                 }
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(request));
+                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(request, request.VehicleRequestItems));
             }
             catch (Exception ex)
             {
@@ -183,89 +214,9 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        public async Task<Result<VehicleRequestResponse>> UpdateVehicleRequestAsync(Guid id, VehicleRequestUpdateRequest request)
-        {
-            try
-            {
-                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(id);
-                if (vehicleRequest == null)
-                {
-                    return Result<VehicleRequestResponse>.NotFound($"Vehicle request with ID {id} not found.");
-                }
+        
 
-                if (vehicleRequest.Status != "Pending")
-                {
-                    return Result<VehicleRequestResponse>.Conflict($"Cannot update request with status: {vehicleRequest.Status}.");
-                }
-
-                if (request.Quantity.HasValue) vehicleRequest.Quantity = request.Quantity.Value;
-                if (request.Note != null) vehicleRequest.Note = request.Note;
-
-
-                await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
-                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(vehicleRequest.Id);
-
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), "Vehicle request updated successfully.");
-            }
-            catch (Exception ex)
-            {
-                return Result<VehicleRequestResponse>.InternalServerError($"Error updating vehicle request: {ex.Message}");
-            }
-        }
-
-        public async Task<Result<VehicleRequestResponse>> ApproveVehicleRequestAsync(Guid requestId, Guid evmStaffId)
-        {
-            try
-            {
-                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
-                if (vehicleRequest == null) return Result<VehicleRequestResponse>.NotFound($"Request ID {requestId} not found.");
-
-                
-                if (vehicleRequest.Status != "Processing")
-                {
-                    return Result<VehicleRequestResponse>.Conflict($"Request status is {vehicleRequest.Status}. Must be 'Processing' to allocate.");
-                }
-
-                
-                var evmStaff = await _userRepository.GetUserByIdAsync(evmStaffId);
-                if (evmStaff == null) return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found.");
-
-                
-                var reservedInventories = await _inventoryRepository.GetReservedInventoryByRequestIdAsync(requestId);
-
-                if (reservedInventories.Count() != vehicleRequest.Quantity)
-                {
-                    
-                    return Result<VehicleRequestResponse>.InternalServerError("Stock integrity error: Reserved quantity does not match request quantity. Allocation failed.");
-                }
-
-                
-                foreach (var inventory in reservedInventories)
-                {
-                    inventory.DealerId = vehicleRequest.DealerId;     
-                    inventory.Status = "Allocated to Dealer";         
-                    inventory.VehicleRequestId = null;                
-                    inventory.UpdatedAt = DateTime.UtcNow;
-                }
-
-                await _inventoryRepository.UpdateRangeInventoryAsync(reservedInventories);
-
-                
-                vehicleRequest.Status = "completed";
-                vehicleRequest.ApprovedBy = evmStaffId;
-                vehicleRequest.ApprovedAt = DateTime.UtcNow;
-
-                await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
-                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
-
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), $"Inventory allocated successfully. {vehicleRequest.Quantity} units moved to Dealer {vehicleRequest.Dealer.Name}.");
-            }
-            catch (Exception ex)
-            {
-                return Result<VehicleRequestResponse>.InternalServerError($"Error allocating inventory: {ex.Message}");
-            }
-        }
-
+       
         public async Task<Result<bool>> DeleteVehicleRequestAsync(Guid id)
         {
             try
@@ -315,7 +266,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
 
                 return Result<VehicleRequestResponse>.Success(
-                    MapToVehicleRequestResponse(updatedRequest),
+                    MapToVehicleRequestResponse(updatedRequest, updatedRequest.VehicleRequestItems),
                     "Vehicle request approved by Manager and sent for EVM allocation."
                 );
             }
@@ -351,7 +302,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
 
                 return Result<VehicleRequestResponse>.Success(
-                    MapToVehicleRequestResponse(updatedRequest),
+                    MapToVehicleRequestResponse(updatedRequest, updatedRequest.VehicleRequestItems),
                     $"Vehicle request rejected by Manager: {reason}"
                 );
             }
@@ -361,7 +312,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        public async Task<Result<VehicleRequestResponse>> ApproveByEVMAsync(Guid requestId, Guid evmStaffId)
+        public async Task<Result<VehicleRequestResponse>> ApproveByEVMAsync(Guid requestId, Guid evmStaffId, EVMApproveRequest request)
         {
             try
             {
@@ -370,45 +321,74 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 if (vehicleRequest.Status != "Pending EVM Allocation")
                 {
-                    return Result<VehicleRequestResponse>.Conflict($"Cannot approve request. Current status is {vehicleRequest.Status}.");
+                    return Result<VehicleRequestResponse>.Conflict($"Cannot approve request. Current status is {vehicleRequest.Status}. Must be 'Pending EVM Allocation'.");
                 }
 
                 var evmStaff = await _userRepository.GetUserByIdAsync(evmStaffId);
-                if (evmStaff == null) return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found.");
+                if (evmStaff == null)
+                    return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found or unauthorized.");
 
-                var availableStock = await _inventoryRepository.FindAvailableStockForRequestAsync(
-                    vehicleRequest.VehicleId,
-                    vehicleRequest.Quantity);
+                // --- BƯỚC 1: KIỂM TRA VÀ PHÂN BỔ TỒN KHO CHO NHIỀU ITEM ---
 
-                if (availableStock.Count() < vehicleRequest.Quantity)
+                var allUnitsToAllocate = new List<Inventory>();
+                var itemsToCheck = vehicleRequest.VehicleRequestItems.ToList();
+
+                // Kiểm tra và thu thập tất cả các đơn vị Inventory cần thiết
+                foreach (var item in itemsToCheck)
                 {
-                    int availableCount = availableStock.Count();
-                    int requestedQuantity = vehicleRequest.Quantity;
-                    return Result<VehicleRequestResponse>.Conflict(
-                        $"Insufficient stock for allocation. Currently, **only {availableCount} vehicles are available to ship,  while the dealership requested **{requestedQuantity} vehicles**." +
-                        "Please reject the request and provide a reason."
-                    );
+                    var availableStock = await _inventoryRepository.FindAvailableStockForAllocationAsync(
+                        item.VehicleId,
+                        item.Quantity);
+
+                    if (availableStock.Count() < item.Quantity)
+                    {
+                        // Xử lý lỗi thiếu kho (như code trước)
+                        return Result<VehicleRequestResponse>.Conflict(
+                            $"Insufficient stock for Vehicle **{item.Vehicle.ModelName}**." +
+                            "Please reject the request and provide a reason."
+                        );
+                    }
+
+                    allUnitsToAllocate.AddRange(availableStock.Take(item.Quantity));
                 }
+
+                // --- BƯỚC 2: CẬP NHẬT TỒN KHO & NGÀY SHIPPING ---
 
                 Guid currentRequestId = vehicleRequest.Id;
-                foreach (var inventory in availableStock)
+                Guid dealerId = vehicleRequest.DealerId;
+                DateTime shippingDate = DateTime.UtcNow; // Ngày xe rời kho Hãng
+
+                foreach (var inventory in allUnitsToAllocate)
                 {
-                    inventory.DealerId = vehicleRequest.DealerId;     
-                    inventory.Status = "Allocated to Dealer";         
-                    inventory.VehicleRequestId = currentRequestId;                
+                    inventory.DealerId = dealerId;
+                    inventory.Status = "Shipped to Dealer";
+                    inventory.VehicleRequestId = currentRequestId;
                     inventory.UpdatedAt = DateTime.UtcNow;
+
+                    // THÊM: Cập nhật ShippingDate cho từng Inventory
+                    inventory.ShippingDate = shippingDate;
                 }
 
-                await _inventoryRepository.UpdateRangeInventoryAsync(availableStock);
+                await _inventoryRepository.UpdateRangeInventoryAsync(allUnitsToAllocate);
 
-                vehicleRequest.Status = "completed";
+                // --- BƯỚC 3: CẬP NHẬT REQUEST CHÍNH & NGÀY DỰ KIẾN GIAO HÀNG ---
+
+                // Dùng thuộc tính riêng biệt cho EVM
+                vehicleRequest.Status = "Shipped";
                 vehicleRequest.ApprovedBy = evmStaffId;
                 vehicleRequest.ApprovedAt = DateTime.UtcNow;
 
+                // THÊM: Cập nhật ExpectedDeliveryDate từ request DTO
+                vehicleRequest.ExpectedDeliveryDate = request.ExpectedDeliveryDate;
+
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
+
                 var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
 
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), $"Inventory allocated successfully. {vehicleRequest.Quantity} units moved.");
+                return Result<VehicleRequestResponse>.Success(
+                    MapToVehicleRequestResponse(updatedRequest, updatedRequest.VehicleRequestItems),
+                    $"Inventory allocated and shipped successfully. Expected Delivery: {request.ExpectedDeliveryDate:d}."
+                );
             }
             catch (Exception ex)
             {
@@ -439,7 +419,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
                 var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
 
-                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest), $"Vehicle request canceled by EVM: {reason}");
+                return Result<VehicleRequestResponse>.Success(MapToVehicleRequestResponse(updatedRequest, updatedRequest.VehicleRequestItems), $"Vehicle request canceled by EVM: {reason}");
             }
             catch (Exception ex)
             {

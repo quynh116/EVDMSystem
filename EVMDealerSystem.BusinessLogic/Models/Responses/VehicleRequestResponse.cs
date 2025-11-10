@@ -11,11 +11,8 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses
         public Guid Id { get; set; }
         public Guid CreatedBy { get; set; }
         public string CreatedByName { get; set; } = null!;
-        public Guid VehicleId { get; set; }
-        public string VehicleModelName { get; set; } = null!;
         public Guid DealerId { get; set; }
         public string DealerName { get; set; } = null!;
-        public int Quantity { get; set; }
         public string? Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public Guid? ApprovedBy { get; set; }
@@ -25,5 +22,16 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses
         public string? CancellationReason { get; set; }
         public Guid? CanceledBy { get; set; }
         public DateTime? CanceledAt { get; set; }
+        public DateTime? ExpectedDeliveryDate { get; set; }
+        public DateTime? AllocationConfirmationDate { get; set; }
+        public List<VehicleRequestItemResponse> Items { get; set; } = new List<VehicleRequestItemResponse>();
+    }
+
+    public class VehicleRequestItemResponse
+    {
+        public Guid Id { get; set; }
+        public Guid VehicleId { get; set; }
+        public string VehicleModelName { get; set; } = null!;
+        public int Quantity { get; set; }
     }
 }

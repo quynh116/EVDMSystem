@@ -79,6 +79,8 @@ builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IVehicleRequestItemRepository, VehicleRequestItemRepository>();
+builder.Services.AddScoped<IDealerVehiclePriceRepository, DealerVehiclePriceRepository>();
 
 
 //service

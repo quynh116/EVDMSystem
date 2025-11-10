@@ -19,6 +19,8 @@ public partial class Inventory
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+    public DateTime? ShippingDate { get; set; }
+    public DateTime? ReceivedDate { get; set; }
 
     public virtual Dealer Dealer { get; set; } = null!;
 
@@ -26,4 +28,5 @@ public partial class Inventory
 
     public virtual Vehicle Vehicle { get; set; } = null!;
     public virtual VehicleRequest? VehicleRequest { get; set; }
+
 }
