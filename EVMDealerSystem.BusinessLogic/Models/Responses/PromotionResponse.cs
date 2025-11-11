@@ -9,8 +9,6 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses
     public class PromotionResponse
     {
         public Guid Id { get; set; }
-        public Guid VehicleId { get; set; }
-        public string VehicleModelName { get; set; } = null!; 
         public Guid CreatedBy { get; set; }
         public string CreatedByName { get; set; } = null!; 
         public string Name { get; set; } = null!;

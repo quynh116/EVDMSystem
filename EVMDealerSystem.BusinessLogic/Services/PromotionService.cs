@@ -33,8 +33,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
             return new PromotionResponse
             {
                 Id = promotion.Id,
-                VehicleId = promotion.VehicleId,
-                VehicleModelName = promotion.Vehicle.ModelName,
                 CreatedBy = promotion.CreatedBy,
                 CreatedByName = promotion.CreatedByNavigation.FullName, 
                 Name = promotion.Name,
@@ -84,8 +82,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
         {
             try
             {
-                if (await _vehicleRepository.GetVehicleByIdAsync(request.VehicleId) == null)
-                    return Result<PromotionResponse>.NotFound($"Vehicle ID {request.VehicleId} not found.");
 
                 if (await _userRepository.GetUserByIdAsync(request.CreatedBy) == null)
                     return Result<PromotionResponse>.NotFound($"User ID {request.CreatedBy} not found.");
@@ -99,7 +95,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 var newPromotion = new Promotion
                 {
                     Id = Guid.NewGuid(),
-                    VehicleId = request.VehicleId,
                     CreatedBy = request.CreatedBy,
                     Name = request.Name,
                     Description = request.Description,
@@ -131,7 +126,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (existingPromotion == null)
                     return Result<PromotionResponse>.NotFound($"Promotion ID {id} not found.");
 
-                existingPromotion.VehicleId = request.VehicleId != Guid.Empty ? request.VehicleId : existingPromotion.VehicleId;
                 existingPromotion.Name = request.Name ?? existingPromotion.Name;
                 existingPromotion.Description = request.Description ?? existingPromotion.Description;
                 existingPromotion.DiscountPercent = request.DiscountPercent ?? existingPromotion.DiscountPercent;
@@ -173,6 +167,54 @@ namespace EVMDealerSystem.BusinessLogic.Services
             catch (Exception ex)
             {
                 return Result<bool>.InternalServerError($"Error deleting promotion: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<IEnumerable<PromotionResponse>>> GetDealerPromotionsAsync(Guid dealerId)
+        {
+            try
+            {
+                var promotions = await _promotionRepository.GetPromotionsByDealerIdAsync(dealerId);
+                var responses = promotions.Select(MapToPromotionResponse).ToList();
+                return Result<IEnumerable<PromotionResponse>>.Success(responses);
+            }
+            catch (Exception ex)
+            {
+                return Result<IEnumerable<PromotionResponse>>.InternalServerError($"Error retrieving dealer promotions: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<bool>> ApplyPromotionToVehicleAsync(Guid promotionId, Guid vehicleId)
+        {
+            try
+            {
+                var promotion = await _promotionRepository.GetByIdAsync(promotionId);
+                if (promotion == null)
+                    return Result<bool>.NotFound($"Promotion ID {promotionId} not found.");
+
+                var vehicle = await _vehicleRepository.GetVehicleByIdAsync(vehicleId);
+                if (vehicle == null)
+                    return Result<bool>.NotFound($"Vehicle ID {vehicleId} not found.");
+
+                await _promotionRepository.ApplyPromotionToVehicleAsync(promotionId, vehicleId);
+                return Result<bool>.Success(true, "Promotion applied to vehicle successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<bool>.InternalServerError($"Error applying promotion: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<bool>> RemovePromotionFromVehicleAsync(Guid promotionId, Guid vehicleId)
+        {
+            try
+            {
+                await _promotionRepository.RemovePromotionFromVehicleAsync(promotionId, vehicleId);
+                return Result<bool>.Success(true, "Promotion removed from vehicle successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<bool>.InternalServerError($"Error removing promotion: {ex.Message}");
             }
         }
     }

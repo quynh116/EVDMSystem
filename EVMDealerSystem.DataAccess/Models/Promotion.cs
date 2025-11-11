@@ -7,8 +7,6 @@ public partial class Promotion
 {
     public Guid Id { get; set; }
 
-    public Guid VehicleId { get; set; }
-
     public Guid CreatedBy { get; set; }
 
     public string Name { get; set; } = null!;
@@ -32,6 +30,5 @@ public partial class Promotion
     public string? Note { get; set; }
 
     public virtual User CreatedByNavigation { get; set; } = null!;
-
-    public virtual Vehicle Vehicle { get; set; } = null!;
+    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

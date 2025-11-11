@@ -142,7 +142,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 {
                     int currentStock = stockMap.GetValueOrDefault(v.Id, 0);
 
-                    decimal finalPrice = await CalculateFinalPriceAsync(v.Id, v.BasePrice);
+                    decimal finalPrice = await CalculateFinalPriceAsync(v.Id, v.BasePrice,targetDealerId);
 
                     var response = MapToVehicleResponse(v, finalPrice, currentStock);
                     response.DealerId = targetDealerId; 
@@ -184,7 +184,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     currentStock = stockMap[id];
                 }
 
-                decimal finalPrice = await CalculateFinalPriceAsync(id, vehicle.BasePrice);
+                decimal finalPrice = await CalculateFinalPriceAsync(id, vehicle.BasePrice, targetDealerId);
 
                 var response = MapToVehicleResponse(vehicle, finalPrice, currentStock);
                 response.DealerId = targetDealerId; 
@@ -294,22 +294,24 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        private async Task<decimal> CalculateFinalPriceAsync(Guid vehicleId, decimal basePrice)
+        private async Task<decimal> CalculateFinalPriceAsync(Guid vehicleId, decimal basePrice, Guid? dealerId)
         {
-            var promotions = await _promotionRepository.GetActivePromotionsByVehicleIdAsync(vehicleId);
+            if (!dealerId.HasValue)
+            {
+                return basePrice;
+            }
+            var promotions = await _promotionRepository.GetActivePromotionsByVehicleIdAsync(vehicleId, dealerId.Value);
+            
 
             decimal finalPrice = basePrice;
 
             foreach (var p in promotions)
             {
-                if (p.IsActive && p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow)
-                {
                     if (p.DiscountType == "Percent" && p.DiscountPercent.HasValue)
                     {
                         decimal discountAmount = basePrice * (p.DiscountPercent.Value / 100m);
                         finalPrice -= discountAmount;
                     }
-                }
             }
 
             return Math.Max(0, finalPrice);

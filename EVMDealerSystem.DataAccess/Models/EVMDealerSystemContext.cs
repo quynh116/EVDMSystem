@@ -380,17 +380,25 @@ public partial class EVMDealerSystemContext : DbContext
             entity.Property(e => e.Note).HasColumnName("note");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Promotions)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__promotion__creat__59063A47");
 
-            entity.HasOne(d => d.Vehicle).WithMany(p => p.Promotions)
-                .HasForeignKey(d => d.VehicleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__promotion__vehic__5812160E");
+            entity.HasMany(p => p.Vehicles)
+        .WithMany(v => v.Promotions)
+        .UsingEntity<Dictionary<string, object>>(
+            "promotion_vehicles",
+            j => j.HasOne<Vehicle>().WithMany().HasForeignKey("vehicle_id"),
+            j => j.HasOne<Promotion>().WithMany().HasForeignKey("promotion_id"),
+            j =>
+            {
+                j.HasKey("promotion_id", "vehicle_id");
+                j.Property<DateTime>("created_at").HasDefaultValueSql("GETDATE()");
+                j.ToTable("promotion_vehicles");
+            }
+        );
         });
 
         modelBuilder.Entity<Role>(entity =>

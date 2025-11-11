@@ -52,5 +52,26 @@ namespace EVMDealerSystem.Api.Controllers
             var result = await _promotionService.DeletePromotionAsync(id);
             return HandleResult(result);
         }
+
+        [HttpGet("dealer/{dealerId}")]
+        public async Task<ActionResult<Result<IEnumerable<PromotionResponse>>>> GetDealerPromotions(Guid dealerId)
+        {
+            var result = await _promotionService.GetDealerPromotionsAsync(dealerId);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{promotionId}/vehicle/{vehicleId}")]
+        public async Task<ActionResult<Result<bool>>> ApplyPromotionToVehicle(Guid promotionId, Guid vehicleId)
+        {
+            var result = await _promotionService.ApplyPromotionToVehicleAsync(promotionId, vehicleId);
+            return HandleResult(result);
+        }
+
+        [HttpDelete("{promotionId}/vehicle/{vehicleId}")]
+        public async Task<ActionResult<Result<bool>>> RemovePromotionFromVehicle(Guid promotionId, Guid vehicleId)
+        {
+            var result = await _promotionService.RemovePromotionFromVehicleAsync(promotionId, vehicleId);
+            return HandleResult(result);
+        }
     }
 }

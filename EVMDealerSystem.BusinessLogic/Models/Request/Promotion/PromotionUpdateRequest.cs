@@ -9,7 +9,6 @@ namespace EVMDealerSystem.BusinessLogic.Models.Request.Promotion
 {
     public class PromotionUpdateRequest
     {
-        public Guid VehicleId { get; set; } 
         public string? Name { get; set; }
         public string? Description { get; set; }
         public decimal? DiscountPercent { get; set; }
