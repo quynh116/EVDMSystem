@@ -160,5 +160,16 @@ namespace EVMDealerSystem.DataAccess.Repository
 
             return availableStock;
         }
+
+        public async Task<IEnumerable<Inventory>> GetAllocatedInventoryByRequestIdAsync(Guid requestId)
+        {
+            return await GetQueryWithIncludes()
+        .Where(i =>
+            i.VehicleRequestId == requestId &&
+            i.DealerId != null &&
+            i.Status == "Shipped to Dealer"
+        )
+        .ToListAsync();
+        }
     }
 }

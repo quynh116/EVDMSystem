@@ -126,5 +126,14 @@ namespace EVMDealerSystem.Api.Controllers
             var result = await _vehicleRequestService.RejectByEVMAsync(id, evmStaffId, rejection.Reason);
             return HandleResult(result);
         }
+
+        [HttpPut("{requestId}/confirm-receipt")]
+        public async Task<ActionResult<Result<VehicleRequestResponse>>> ConfirmReceiptByDealer(Guid requestId, Guid dealerId)
+        {
+
+            var result = await _vehicleRequestService.ConfirmReceiptByDealerAsync(requestId, dealerId);
+
+            return HandleResult(result);
+        }
     }
 }

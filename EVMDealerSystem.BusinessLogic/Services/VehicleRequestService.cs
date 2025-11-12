@@ -86,17 +86,17 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 var user = await _userRepository.GetUserByIdAsync(request.CreatedBy);
                 if (user == null) return Result<VehicleRequestResponse>.NotFound($"Creating User ID {request.CreatedBy} not found.");
 
-                
-                
 
-                
+
+
+
                 var newRequest = new VehicleRequest
                 {
-                    Id = Guid.NewGuid(), 
+                    Id = Guid.NewGuid(),
                     CreatedBy = request.CreatedBy,
                     DealerId = request.DealerId,
                     Note = request.Note,
-                    Status = "Pending Manager Approval", 
+                    Status = "Pending Manager Approval",
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -106,7 +106,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 foreach (var itemDto in request.Items)
                 {
                     var vehicle = await _vehicleRepository.GetVehicleByIdAsync(itemDto.VehicleId);
-                    if (vehicle == null) continue; 
+                    if (vehicle == null) continue;
 
                     var newItem = new VehicleRequestItem
                     {
@@ -147,7 +147,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                     if (user != null)
                     {
-                        
+
                         if (user.RoleId == 1)
                         {
                             query = query.Where(r => r.CreatedBy == userId.Value);
@@ -158,8 +158,8 @@ namespace EVMDealerSystem.BusinessLogic.Services
                             query = query.Where(r => r.DealerId == user.DealerId.Value);
                         }
 
-                        
-                        else 
+
+                        else
                         {
                             query = query.Where(r => r.Status != "Pending Manager Approval");
                         }
@@ -214,9 +214,9 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
         }
 
-        
 
-       
+
+
         public async Task<Result<bool>> DeleteVehicleRequestAsync(Guid id)
         {
             try
@@ -258,7 +258,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (manager == null)
                     return Result<VehicleRequestResponse>.NotFound($"Manager ID {managerId} not found.");
 
-                vehicleRequest.Status = "Pending EVM Allocation"; 
+                vehicleRequest.Status = "Pending EVM Allocation";
                 vehicleRequest.ApprovedBy = managerId;
                 vehicleRequest.ApprovedAt = DateTime.UtcNow;
 
@@ -412,7 +412,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (evmStaff == null) return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found.");
 
                 vehicleRequest.Status = "Canceled by EVM";
-                vehicleRequest.CancellationReason = reason; 
+                vehicleRequest.CancellationReason = reason;
                 vehicleRequest.CanceledBy = evmStaffId;
                 vehicleRequest.CanceledAt = DateTime.UtcNow;
 
@@ -424,6 +424,56 @@ namespace EVMDealerSystem.BusinessLogic.Services
             catch (Exception ex)
             {
                 return Result<VehicleRequestResponse>.InternalServerError($"Error rejecting vehicle request: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<VehicleRequestResponse>> ConfirmReceiptByDealerAsync(Guid requestId, Guid DealerId)
+        {
+            try
+            {
+                var vehicleRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+                if (vehicleRequest == null)
+                    return Result<VehicleRequestResponse>.NotFound($"Request ID {requestId} not found.");
+
+                if (vehicleRequest.DealerId != DealerId)
+                    return Result<VehicleRequestResponse>.NotFound("You cannot confirm receipt for a request that does not belong to your dealer.");
+
+                if (vehicleRequest.Status != "Shipped")
+                {
+                    return Result<VehicleRequestResponse>.Conflict($"Cannot confirm receipt. Current status is {vehicleRequest.Status}. Must be 'Shipped'.");
+                }
+
+
+                vehicleRequest.Status = "Completed";
+                vehicleRequest.AllocationConfirmationDate = DateTime.UtcNow;
+
+                await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
+
+                var allocatedInventories = await _inventoryRepository.GetAllocatedInventoryByRequestIdAsync(requestId);
+
+                if (allocatedInventories != null && allocatedInventories.Any())
+                {
+                    var inventoriesToUpdate = new List<Inventory>();
+                    foreach (var inventory in allocatedInventories)
+                    {
+                        inventory.Status = "Allocated to Dealer";
+                        inventory.ReceivedDate = DateTime.UtcNow;
+                        inventoriesToUpdate.Add(inventory);
+                    }
+
+                    await _inventoryRepository.UpdateRangeInventoryAsync(inventoriesToUpdate);
+                }
+
+                var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
+
+                return Result<VehicleRequestResponse>.Success(
+                    MapToVehicleRequestResponse(updatedRequest, updatedRequest.VehicleRequestItems),
+                    "Vehicle receipt confirmed and inventory updated successfully."
+                );
+            }
+            catch (Exception ex)
+            {
+                return Result<VehicleRequestResponse>.InternalServerError($"Error confirming receipt: {ex.Message}");
             }
         }
     }

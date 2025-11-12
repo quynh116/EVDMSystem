@@ -19,5 +19,6 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
         Task<Result<VehicleRequestResponse>> RejectByDealerManagerAsync(Guid requestId, Guid managerId, string reason);
         Task<Result<VehicleRequestResponse>> ApproveByEVMAsync(Guid requestId, Guid evmStaffId, EVMApproveRequest request);
         Task<Result<VehicleRequestResponse>> RejectByEVMAsync(Guid requestId, Guid evmStaffId, string reason);
+        Task<Result<VehicleRequestResponse>> ConfirmReceiptByDealerAsync(Guid requestId, Guid dealerId);
     }
 }
