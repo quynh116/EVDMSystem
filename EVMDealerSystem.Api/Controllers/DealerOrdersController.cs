@@ -50,5 +50,15 @@ namespace EVMDealerSystem.Api.Controllers
             if (!res.IsSuccess) return NotFound(res.Messages);
             return Ok(res.Data);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _orderService.GetAllOrdersAsync();
+            if (!result.IsSuccess)
+                return StatusCode(500, result.Messages);
+
+            return Ok(result.Data);
+        }
     }
 }
