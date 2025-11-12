@@ -20,5 +20,6 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
         Task<Result<IEnumerable<PromotionResponse>>> GetDealerPromotionsAsync(Guid dealerId);
         Task<Result<bool>> ApplyPromotionToVehicleAsync(Guid promotionId, Guid vehicleId);
         Task<Result<bool>> RemovePromotionFromVehicleAsync(Guid promotionId, Guid vehicleId);
+        Task<Result<IEnumerable<PromotionResponse>>> GetActiveVehiclePromotionsAsync(Guid vehicleId, Guid userId);
     }
 }

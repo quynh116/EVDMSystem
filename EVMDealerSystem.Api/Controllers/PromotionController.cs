@@ -73,5 +73,18 @@ namespace EVMDealerSystem.Api.Controllers
             var result = await _promotionService.RemovePromotionFromVehicleAsync(promotionId, vehicleId);
             return HandleResult(result);
         }
+
+        [HttpGet("active-by-vehicle")]
+        public async Task<ActionResult<Result<IEnumerable<PromotionResponse>>>> GetActivePromotionsByVehicle([FromQuery] Guid vehicleId,[FromQuery] Guid userId) 
+        {
+            if (vehicleId == Guid.Empty)
+                return HandleResult(Result<IEnumerable<PromotionResponse>>.Invalid("VehicleId is required."));
+
+            if (userId == Guid.Empty)
+                return HandleResult(Result<IEnumerable<PromotionResponse>>.Invalid("UserId is required."));
+
+            var result = await _promotionService.GetActiveVehiclePromotionsAsync(vehicleId, userId);
+            return HandleResult(result);
+        }
     }
 }

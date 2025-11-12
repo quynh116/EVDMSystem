@@ -78,7 +78,7 @@ namespace EVMDealerSystem.Api.Controllers
             return HandleResult(result);
         }
 
-        [HttpPost("{id}/inventory")] 
+        [HttpPost("{id}/inventory")]
         public async Task<ActionResult<Result<IEnumerable<InventoryResponse>>>> AddInventoryBatch([FromBody] InventoryBatchCreateRequest request)
         {
             if (!ModelState.IsValid)
@@ -87,7 +87,7 @@ namespace EVMDealerSystem.Api.Controllers
                 return BadRequest(Result<IEnumerable<InventoryResponse>>.Invalid("Invalid inventory data.", errors));
             }
 
-            
+
 
             var result = await _vehicleService.AddInventoryBatchAsync(request);
 
@@ -96,6 +96,14 @@ namespace EVMDealerSystem.Api.Controllers
                 return Ok(result);
             }
 
+            return HandleResult(result);
+        }
+
+        [HttpPost("set-dealer-price")]
+        public async Task<ActionResult<Result<bool>>> SetDealerSellingPrice(Guid userId,[FromBody] DealerSellingPriceRequest request)
+        {
+
+            var result = await _vehicleService.SetDealerSellingPriceAsync(userId, request);
             return HandleResult(result);
         }
     }

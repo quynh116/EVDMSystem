@@ -23,16 +23,18 @@ namespace EVMDealerSystem.BusinessLogic.Services
         private readonly IInventoryRepository _inventoryRepository;
         private readonly IUserRepository _userRepository;
         private readonly IPromotionRepository _promotionRepository;
+        private readonly IDealerVehiclePriceRepository _dealerPriceRepository;
 
-        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository, IUserRepository userRepository, IPromotionRepository promotionRepository)
+        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository, IUserRepository userRepository, IPromotionRepository promotionRepository, IDealerVehiclePriceRepository dealerPriceRepository)
         {
             _vehicleRepository = vehicleRepository;
             _evmRepository = evmRepository;
             _inventoryRepository = inventoryRepository;
             _userRepository = userRepository;
             _promotionRepository = promotionRepository;
+            _dealerPriceRepository = dealerPriceRepository;
         }
-        private VehicleResponse MapToVehicleResponse(Vehicle vehicle, decimal finalPrice, int currentStock)
+        private VehicleResponse MapToVehicleResponse(Vehicle vehicle, decimal finalPrice, int currentStock, decimal? dealerSellingPrice)
         {
             if (vehicle == null) return null;
 
@@ -53,6 +55,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 EvmId = vehicle.EvmId,
                 EvmName = vehicle.Evm?.Name,
                 FinalPrice = finalPrice,
+                SellingPrice = dealerSellingPrice,
                 CurrentStock = currentStock,
                 CreatedAt = vehicle.CreatedAt,
                 UpdatedAt = vehicle.UpdatedAt
@@ -66,7 +69,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             decimal defaultFinalPrice = vehicle.BasePrice;
             int defaultCurrentStock = 0;
 
-            return MapToVehicleResponse(vehicle, defaultFinalPrice, defaultCurrentStock);
+            return MapToVehicleResponse(vehicle, defaultFinalPrice, defaultCurrentStock, null);
         }
 
         public async Task<Result<VehicleResponse>> CreateVehicleAsync(VehicleCreateRequest request)
@@ -117,6 +120,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             try
             {
                 Guid? targetDealerId = null;
+                decimal? dealerSellingPrice = null;
 
                 if (userId.HasValue && userId != Guid.Empty)
                 {
@@ -138,13 +142,31 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 var responses = new List<VehicleResponse>();
 
+                
+                Dictionary<Guid, decimal> dealerPricesMap = new Dictionary<Guid, decimal>();
+                if (targetDealerId.HasValue)
+                {
+                    
+                    var dealerPrices = await _dealerPriceRepository.GetAllPricesByDealerAsync(targetDealerId.Value);
+                    dealerPricesMap = dealerPrices.ToDictionary(p => p.VehicleId, p => p.SellingPrice);
+                }
+
                 foreach (var v in vehicles)
                 {
                     int currentStock = stockMap.GetValueOrDefault(v.Id, 0);
 
                     decimal finalPrice = await CalculateFinalPriceAsync(v.Id, v.BasePrice,targetDealerId);
 
-                    var response = MapToVehicleResponse(v, finalPrice, currentStock);
+                    if (dealerPricesMap.ContainsKey(v.Id))
+                    {
+                        dealerSellingPrice = dealerPricesMap[v.Id];
+                    }
+                    else
+                    {
+                        dealerSellingPrice = null; 
+                    }
+
+                    var response = MapToVehicleResponse(v, finalPrice, currentStock, dealerSellingPrice);
                     response.DealerId = targetDealerId; 
 
                     responses.Add(response);
@@ -184,9 +206,18 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     currentStock = stockMap[id];
                 }
 
+                decimal? dealerSellingPrice = null;
+                if (targetDealerId.HasValue)
+                {
+                    var dealerPrice = await _dealerPriceRepository.GetPriceByDealerAndVehicleAsync(targetDealerId.Value, id);
+                    dealerSellingPrice = dealerPrice?.SellingPrice;
+                }
+
                 decimal finalPrice = await CalculateFinalPriceAsync(id, vehicle.BasePrice, targetDealerId);
 
-                var response = MapToVehicleResponse(vehicle, finalPrice, currentStock);
+                
+
+                var response = MapToVehicleResponse(vehicle, finalPrice, currentStock, dealerSellingPrice);
                 response.DealerId = targetDealerId; 
 
                 return Result<VehicleResponse>.Success(response);
@@ -296,25 +327,75 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
         private async Task<decimal> CalculateFinalPriceAsync(Guid vehicleId, decimal basePrice, Guid? dealerId)
         {
-            if (!dealerId.HasValue)
-            {
-                return basePrice;
-            }
-            var promotions = await _promotionRepository.GetActivePromotionsByVehicleIdAsync(vehicleId, dealerId.Value);
-            
+            decimal discountBasePrice = basePrice;
+            decimal? dealerSellingPrice = null;
 
-            decimal finalPrice = basePrice;
-
-            foreach (var p in promotions)
+            if (dealerId.HasValue)
             {
+                var dealerPrice = await _dealerPriceRepository.GetPriceByDealerAndVehicleAsync(dealerId.Value, vehicleId);
+                dealerSellingPrice = dealerPrice?.SellingPrice;
+
+                if (dealerSellingPrice.HasValue)
+                {
+                    discountBasePrice = dealerSellingPrice.Value;
+                }
+
+                var promotions = await _promotionRepository.GetActivePromotionsByVehicleIdAsync(vehicleId, dealerId.Value);
+
+                decimal finalPrice = discountBasePrice; 
+
+                foreach (var p in promotions)
+                {
                     if (p.DiscountType == "Percent" && p.DiscountPercent.HasValue)
                     {
-                        decimal discountAmount = basePrice * (p.DiscountPercent.Value / 100m);
+                        decimal discountAmount = discountBasePrice * (p.DiscountPercent.Value / 100m);
                         finalPrice -= discountAmount;
                     }
+                }
+
+                return Math.Max(0, finalPrice);
             }
 
-            return Math.Max(0, finalPrice);
+            return basePrice;
+        }
+
+        public async Task<Result<bool>> SetDealerSellingPriceAsync(Guid userId, DealerSellingPriceRequest request)
+        {
+            try
+            {
+                // 1. Xác định DealerId từ UserId
+                var user = await _userRepository.GetUserByIdAsync(userId);
+                if (user == null)
+                    return Result<bool>.NotFound("User not found.");
+
+                if (!user.DealerId.HasValue)
+                    return Result<bool>.NotFound("User does not belong to a Dealer.");
+
+                Guid dealerId = user.DealerId.Value;
+
+                // 2. Kiểm tra Vehicle tồn tại
+                var vehicle = await _vehicleRepository.GetVehicleByIdAsync(request.VehicleId);
+                if (vehicle == null)
+                    return Result<bool>.NotFound($"Vehicle ID {request.VehicleId} not found.");
+
+                // 3. Tạo/Cập nhật đối tượng DealerVehiclePrice
+                var newPriceEntry = new DealerVehiclePrice
+                {
+                    DealerId = dealerId,
+                    VehicleId = request.VehicleId,
+                    SellingPrice = request.SellingPrice,
+                    // CreatedAt/UpdatedAt sẽ được xử lý trong Repository
+                };
+
+                // 4. Gọi Repository để Set/Update
+                await _dealerPriceRepository.SetOrUpdatePriceAsync(newPriceEntry);
+
+                return Result<bool>.Success(true, "Dealer selling price set successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<bool>.InternalServerError($"Error setting dealer price: {ex.Message}");
+            }
         }
     }
 }

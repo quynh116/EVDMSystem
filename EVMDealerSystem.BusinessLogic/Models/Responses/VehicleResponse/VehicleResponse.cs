@@ -18,6 +18,7 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses.VehicleResponse
         public decimal? BatteryCapacity { get; set; }
         public int? RangePerCharge { get; set; }
         public decimal BasePrice { get; set; }
+        public decimal? SellingPrice { get; set; }
         public decimal FinalPrice { get; set; }
         public string? Status { get; set; }
         public DateTime? LaunchDate { get; set; }

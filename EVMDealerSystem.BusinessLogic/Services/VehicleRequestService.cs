@@ -328,12 +328,10 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (evmStaff == null)
                     return Result<VehicleRequestResponse>.NotFound($"EVM Staff ID {evmStaffId} not found or unauthorized.");
 
-                // --- BƯỚC 1: KIỂM TRA VÀ PHÂN BỔ TỒN KHO CHO NHIỀU ITEM ---
 
                 var allUnitsToAllocate = new List<Inventory>();
                 var itemsToCheck = vehicleRequest.VehicleRequestItems.ToList();
 
-                // Kiểm tra và thu thập tất cả các đơn vị Inventory cần thiết
                 foreach (var item in itemsToCheck)
                 {
                     var availableStock = await _inventoryRepository.FindAvailableStockForAllocationAsync(
@@ -342,7 +340,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                     if (availableStock.Count() < item.Quantity)
                     {
-                        // Xử lý lỗi thiếu kho (như code trước)
                         return Result<VehicleRequestResponse>.Conflict(
                             $"Insufficient stock for Vehicle **{item.Vehicle.ModelName}**." +
                             "Please reject the request and provide a reason."
@@ -352,11 +349,10 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     allUnitsToAllocate.AddRange(availableStock.Take(item.Quantity));
                 }
 
-                // --- BƯỚC 2: CẬP NHẬT TỒN KHO & NGÀY SHIPPING ---
 
                 Guid currentRequestId = vehicleRequest.Id;
                 Guid dealerId = vehicleRequest.DealerId;
-                DateTime shippingDate = DateTime.UtcNow; // Ngày xe rời kho Hãng
+                DateTime shippingDate = DateTime.UtcNow; 
 
                 foreach (var inventory in allUnitsToAllocate)
                 {
@@ -365,20 +361,15 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     inventory.VehicleRequestId = currentRequestId;
                     inventory.UpdatedAt = DateTime.UtcNow;
 
-                    // THÊM: Cập nhật ShippingDate cho từng Inventory
                     inventory.ShippingDate = shippingDate;
                 }
 
                 await _inventoryRepository.UpdateRangeInventoryAsync(allUnitsToAllocate);
 
-                // --- BƯỚC 3: CẬP NHẬT REQUEST CHÍNH & NGÀY DỰ KIẾN GIAO HÀNG ---
-
-                // Dùng thuộc tính riêng biệt cho EVM
                 vehicleRequest.Status = "Shipped";
                 vehicleRequest.ApprovedBy = evmStaffId;
                 vehicleRequest.ApprovedAt = DateTime.UtcNow;
 
-                // THÊM: Cập nhật ExpectedDeliveryDate từ request DTO
                 vehicleRequest.ExpectedDeliveryDate = request.ExpectedDeliveryDate;
 
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);

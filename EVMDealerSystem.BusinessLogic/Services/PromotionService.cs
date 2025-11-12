@@ -217,5 +217,33 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 return Result<bool>.InternalServerError($"Error removing promotion: {ex.Message}");
             }
         }
+
+        public async Task<Result<IEnumerable<PromotionResponse>>> GetActiveVehiclePromotionsAsync(Guid vehicleId, Guid userId)
+        {
+            try
+            {
+                var user = await _userRepository.GetUserByIdAsync(userId);
+                if (user == null)
+                    return Result<IEnumerable<PromotionResponse>>.NotFound("User not found.");
+
+                if (!user.DealerId.HasValue)
+                    return Result<IEnumerable<PromotionResponse>>.NotFound("User does not belong to a Dealer.");
+
+                Guid dealerId = user.DealerId.Value;
+
+                if (await _vehicleRepository.GetVehicleByIdAsync(vehicleId) == null)
+                    return Result<IEnumerable<PromotionResponse>>.NotFound($"Vehicle ID {vehicleId} not found.");
+
+                var promotions = await _promotionRepository.GetActivePromotionsByVehicleIdAsync(vehicleId, dealerId);
+
+                var responses = promotions.Select(MapToPromotionResponse).ToList();
+
+                return Result<IEnumerable<PromotionResponse>>.Success(responses);
+            }
+            catch (Exception ex)
+            {
+                return Result<IEnumerable<PromotionResponse>>.InternalServerError($"Error retrieving active promotions: {ex.Message}");
+            }
+        }
     }
 }
