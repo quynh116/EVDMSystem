@@ -169,5 +169,41 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
             return Result<BusinessLogic.Models.Responses.OrderResponse>.Success(resp);
         }
+        public async Task<Result<IEnumerable<OrderResponse>>> GetAllOrdersAsync()
+        {
+            try
+            {
+                var orders = await _orderRepo.GetAllAsync();
+                var list = orders.Select(o => new OrderResponse
+                {
+                    Id = o.Id,
+                    CustomerId = o.CustomerId,
+                    CustomerName = o.Customer?.FullName ?? string.Empty,
+                    CustomerPhone = o.Customer?.Phone,
+                    DealerStaffId = o.DealerStaffId,
+                    DealerStaffName = o.DealerStaff?.FullName ?? string.Empty,
+                    VehicleId = o.VehicleId,
+                    VehicleModelName = o.Vehicle?.ModelName ?? string.Empty,
+                    VehicleVersion = o.Vehicle?.Version,
+                    DealerId = o.DealerId,
+                    DealerName = o.Dealer?.Name ?? string.Empty,
+                    InventoryId = o.InventoryId,
+                    VinNumber = o.Inventory?.VinNumber ?? string.Empty,
+                    TotalPrice = o.TotalPrice,
+                    OrderStatus = o.OrderStatus,
+                    PaymentStatus = o.PaymentStatus,
+                    PaymentType = o.PaymentType,
+                    CreatedAt = o.CreatedAt,
+                    DeliveredAt = o.DeliveredAt,
+                    Note = o.Note
+                }).ToList();
+
+                return Result<IEnumerable<OrderResponse>>.Success(list);
+            }
+            catch (Exception ex)
+            {
+                return Result<IEnumerable<OrderResponse>>.InternalServerError("Failed to load orders: " + ex.Message);
+            }
+        }
     }
 }

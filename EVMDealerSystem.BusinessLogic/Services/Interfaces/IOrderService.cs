@@ -10,5 +10,7 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
     {
         Task<Result<OrderResponse>> CreateOrderAsync(OrderCreateRequest request, Guid dealerStaffId);
         Task<Result<OrderResponse>> GetByIdAsync(Guid orderId);
+        Task<Result<IEnumerable<OrderResponse>>> GetAllOrdersAsync();
+
     }
 }
