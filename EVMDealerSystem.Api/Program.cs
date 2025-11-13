@@ -81,6 +81,7 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IVehicleRequestItemRepository, VehicleRequestItemRepository>();
 builder.Services.AddScoped<IDealerVehiclePriceRepository, DealerVehiclePriceRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
 //service
 builder.Services.AddScoped<IUserService, UserService>();
@@ -93,6 +94,7 @@ builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 
 builder.Services.AddSingleton<ProvideToken>();
