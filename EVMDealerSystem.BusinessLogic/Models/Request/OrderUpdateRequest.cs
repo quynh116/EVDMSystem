@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EVMDealerSystem.BusinessLogic.Models.Responses
+namespace EVMDealerSystem.BusinessLogic.Models.Request
 {
     public class OrderUpdateRequest
     {
