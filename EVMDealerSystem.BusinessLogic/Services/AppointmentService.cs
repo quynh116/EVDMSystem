@@ -31,64 +31,87 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
         public async Task<Result<AppointmentResponse>> CreateAsync(AppointmentCreateRequest request, Guid dealerStaffId)
         {
-            // require customer phone or NewCustomer or CustomerId
-            Customer? customer = null;
+            try
+            {
+                if (request == null)
+                    return Result<AppointmentResponse>.Invalid("Invalid request.");
 
-            if (request.CustomerId.HasValue && request.CustomerId != Guid.Empty)
-            {
-                customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
-                if (customer == null) return Result<AppointmentResponse>.NotFound("Customer not found");
-            }
-            else if (!string.IsNullOrWhiteSpace(request.CustomerPhone))
-            {
-                customer = await _customerRepo.GetByPhoneAsync(request.CustomerPhone.Trim());
-            }
+                if (request.VehicleId == Guid.Empty || request.DealerId == Guid.Empty)
+                    return Result<AppointmentResponse>.Invalid("VehicleId and DealerId are required.");
 
-            if (customer == null && request.NewCustomer != null)
-            {
-                // create customer
-                var newCust = new Customer
+                Customer? customer = null;
+
+                if (!string.IsNullOrWhiteSpace(request.CustomerPhone))
+                {
+                    string phone = request.CustomerPhone.Trim();
+
+                    customer = await _customerRepo.GetByPhoneAsync(phone);
+
+                    if (customer == null)
+                    {
+                        var newCustomer = new Customer
+                        {
+                            Id = Guid.NewGuid(),
+                            FullName = request.NewCustomer?.FullName ?? "Unnamed",
+                            Phone = phone,
+                            Email = request.NewCustomer?.Email,
+                            Address = request.NewCustomer?.Address,
+                            DealerStaffId = dealerStaffId,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        await _customerRepo.AddAsync(newCustomer);
+                        customer = newCustomer;
+                    }
+                }
+                else if (request.CustomerId.HasValue && request.CustomerId != Guid.Empty)
+                {
+                    customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
+                    if (customer == null)
+                        return Result<AppointmentResponse>.NotFound("Customer not found.");
+                }
+                else
+                {
+                    return Result<AppointmentResponse>.Invalid("Customer phone or ID is required.");
+                }
+
+                var invQuery = await _inventoryRepo.GetInventoryQueryAsync();
+                var inventory = await invQuery
+                    .Include(i => i.Vehicle)
+                    .Include(i => i.Dealer)
+                    .FirstOrDefaultAsync(i => i.VehicleId == request.VehicleId && i.DealerId == request.DealerId);
+
+                if (inventory == null)
+                    return Result<AppointmentResponse>.NotFound("Vehicle not available at this dealer.");
+
+                var existingAppointments = await _appointmentRepo.GetByVehicleAndDateAsync(request.VehicleId, request.AppointmentDate);
+                bool isConflict = existingAppointments.Any(a => a.AppointmentDate == request.AppointmentDate);
+
+                if (isConflict)
+                    return Result<AppointmentResponse>.Conflict("The selected time slot is already booked for this vehicle.");
+
+                var appointment = new Appointment
                 {
                     Id = Guid.NewGuid(),
-                    FullName = request.NewCustomer.FullName,
-                    Phone = request.NewCustomer.Phone,
-                    Email = request.NewCustomer.Email,
-                    Address = request.NewCustomer.Address,
+                    CustomerId = customer.Id,
                     DealerStaffId = dealerStaffId,
+                    VehicleId = request.VehicleId,
+                    AppointmentDate = request.AppointmentDate,
+                    Status = "scheduled",
+                    Note = request.Note,
                     CreatedAt = DateTime.UtcNow
                 };
-                await _customerRepo.AddAsync(newCust);
-                customer = newCust;
+
+                var created = await _appointmentRepo.AddAsync(appointment);
+
+                var response = Map(created);
+                return Result<AppointmentResponse>.Success(response, "Appointment created successfully.");
             }
-
-            if (customer == null) return Result<AppointmentResponse>.Invalid("Customer information required (phone or NewCustomer or CustomerId).");
-
-            // check inventory / vehicle exist at dealer
-            var invQuery = await _inventoryRepo.GetInventoryQueryAsync();
-            var inv = await invQuery.FirstOrDefaultAsync(i => i.VehicleId == request.VehicleId && i.DealerId == request.DealerId);
-            if (inv == null) return Result<AppointmentResponse>.NotFound("Vehicle not available at this dealer");
-
-            // check existing appointments conflict: same vehicle & exact datetime
-            var existing = await _appointmentRepo.GetByVehicleAndDateAsync(request.VehicleId, request.AppointmentDate);
-            if (existing.Any(a => a.AppointmentDate == request.AppointmentDate))
-                return Result<AppointmentResponse>.Conflict("Time slot already booked for this vehicle.");
-
-            var ap = new Appointment
+            catch (Exception ex)
             {
-                Id = Guid.NewGuid(),
-                CustomerId = customer.Id,
-                DealerStaffId = dealerStaffId,
-                VehicleId = request.VehicleId,
-                AppointmentDate = request.AppointmentDate,
-                Status = "scheduled",
-                CreatedAt = DateTime.UtcNow,
-                Note = request.Note
-            };
-
-            var created = await _appointmentRepo.AddAsync(ap);
-            var resp = Map(created);
-            return Result<AppointmentResponse>.Success(resp, "Appointment created");
+                return Result<AppointmentResponse>.InternalServerError($"Failed to create appointment: {ex.Message}");
+            }
         }
+
 
         public async Task<Result<AppointmentResponse>> GetByIdAsync(Guid id)
         {
