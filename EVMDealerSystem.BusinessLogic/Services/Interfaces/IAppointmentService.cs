@@ -18,5 +18,6 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
         Task<Result<IEnumerable<AppointmentResponse>>> GetByDealerIdAsync(Guid dealerStaffId);
         Task<Result<IEnumerable<AppointmentResponse>>> GetByVehicleDateAsync(Guid vehicleId, DateTime date);
         Task<Result<IEnumerable<DateTime>>> GetAvailableSlotsAsync(Guid vehicleId, DateTime date);
+        Task<Result<AppointmentResponse>> UpdateAsync(Guid id, AppointmentUpdateRequest request);
     }
 }

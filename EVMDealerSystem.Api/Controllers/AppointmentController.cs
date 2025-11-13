@@ -71,6 +71,14 @@ namespace EVMDealerSystem.Api.Controllers
         //    if (!res.IsSuccess) return NotFound(res.Messages);
         //    return Ok(res.Data);
         //}
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] AppointmentUpdateRequest request)
+        {
+            var res = await _service.UpdateAsync(id, request);
+            if (!res.IsSuccess) return BadRequest(res.Messages);
+            return Ok(res.Data);
+        }
+
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)

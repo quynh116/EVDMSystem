@@ -123,17 +123,28 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
         public async Task<Result<AppointmentResponse>> UpdateAsync(Guid id, AppointmentUpdateRequest request)
         {
-            var a = await _appointmentRepo.GetByIdAsync(id);
-            if (a == null) return Result<AppointmentResponse>.NotFound("Appointment not found");
+            var appointment = await _appointmentRepo.GetByIdAsync(id);
+            if (appointment == null)
+                return Result<AppointmentResponse>.NotFound("Appointment not found");
 
-            a.AppointmentDate = request.AppointmentDate ?? a.AppointmentDate;
-            a.Status = request.Status ?? a.Status;
-            a.Note = request.Note ?? a.Note;
-            a.UpdatedAt = DateTime.UtcNow;
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                var validStatuses = new[] { "Completed", "NoShow", "Rescheduled", "Canceled" };
+                if (!validStatuses.Contains(request.Status))
+                    return Result<AppointmentResponse>.Invalid("Invalid status value.");
+                appointment.Status = request.Status;
+            }
 
-            var updated = await _appointmentRepo.UpdateAsync(a);
-            return Result<AppointmentResponse>.Success(Map(updated), "Appointment updated");
+            if (request.AppointmentDate.HasValue)
+                appointment.AppointmentDate = request.AppointmentDate.Value;
+
+            appointment.Note = request.Note ?? appointment.Note;
+            appointment.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _appointmentRepo.UpdateAsync(appointment);
+            return Result<AppointmentResponse>.Success(Map(updated), "Appointment updated successfully.");
         }
+
 
         public async Task<Result<bool>> DeleteAsync(Guid id)
         {
