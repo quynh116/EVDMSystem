@@ -41,9 +41,9 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 Customer? customer = null;
 
-                if (!string.IsNullOrWhiteSpace(request.CustomerPhone))
+                if (!string.IsNullOrWhiteSpace(request.NewCustomer.Phone))
                 {
-                    string phone = request.CustomerPhone.Trim();
+                    string phone = request.NewCustomer.Phone.Trim();
 
                     customer = await _customerRepo.GetByPhoneAsync(phone);
 
@@ -62,12 +62,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
                         await _customerRepo.AddAsync(newCustomer);
                         customer = newCustomer;
                     }
-                }
-                else if (request.CustomerId.HasValue && request.CustomerId != Guid.Empty)
-                {
-                    customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value);
-                    if (customer == null)
-                        return Result<AppointmentResponse>.NotFound("Customer not found.");
                 }
                 else
                 {
@@ -96,7 +90,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     DealerStaffId = dealerStaffId,
                     VehicleId = request.VehicleId,
                     AppointmentDate = request.AppointmentDate,
-                    Status = "scheduled",
+                    Status = "Booked",
                     Note = request.Note,
                     CreatedAt = DateTime.UtcNow
                 };

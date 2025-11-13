@@ -56,11 +56,8 @@ namespace EVMDealerSystem.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] AppointmentCreateRequest request)
+        public async Task<IActionResult> Create([FromBody] AppointmentCreateRequest request,Guid dealerStaffId)
         {
-            var userClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (userClaim == null) return Unauthorized();
-            if (!Guid.TryParse(userClaim.Value, out var dealerStaffId)) return Unauthorized();
 
             var res = await _service.CreateAsync(request, dealerStaffId);
             if (!res.IsSuccess) return BadRequest(res.Messages);
