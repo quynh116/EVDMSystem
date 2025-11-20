@@ -1,14 +1,15 @@
+using EVMDealerSystem.BusinessLogic.Models;
+using EVMDealerSystem.BusinessLogic.Services;
+using EVMDealerSystem.BusinessLogic.Services.Interfaces;
+using EVMDealerSystem.BusinessLogic.Token;
 using EVMDealerSystem.DataAccess.Models;
-using EVMDealerSystem.DataAccess.Repository.Interfaces;
 using EVMDealerSystem.DataAccess.Repository;
+using EVMDealerSystem.DataAccess.Repository.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using EVMDealerSystem.BusinessLogic.Services.Interfaces;
-using EVMDealerSystem.BusinessLogic.Services;
-using EVMDealerSystem.BusinessLogic.Token;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,8 @@ builder.Services.AddControllers();
 
 builder.Services.AddDbContext<EVMDealerSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 
 // JWT set up
 builder.Services.AddEndpointsApiExplorer();
@@ -95,6 +98,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IPhotoService, PhotoService>();
 
 
 builder.Services.AddSingleton<ProvideToken>();

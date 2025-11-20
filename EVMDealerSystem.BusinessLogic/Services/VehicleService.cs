@@ -24,8 +24,9 @@ namespace EVMDealerSystem.BusinessLogic.Services
         private readonly IUserRepository _userRepository;
         private readonly IPromotionRepository _promotionRepository;
         private readonly IDealerVehiclePriceRepository _dealerPriceRepository;
+        private readonly IPhotoService _photoService;
 
-        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository, IUserRepository userRepository, IPromotionRepository promotionRepository, IDealerVehiclePriceRepository dealerPriceRepository)
+        public VehicleService(IVehicleRepository vehicleRepository, IEvmRepository evmRepository, IInventoryRepository inventoryRepository, IUserRepository userRepository, IPromotionRepository promotionRepository, IDealerVehiclePriceRepository dealerPriceRepository, IPhotoService photoService)
         {
             _vehicleRepository = vehicleRepository;
             _evmRepository = evmRepository;
@@ -33,6 +34,8 @@ namespace EVMDealerSystem.BusinessLogic.Services
             _userRepository = userRepository;
             _promotionRepository = promotionRepository;
             _dealerPriceRepository = dealerPriceRepository;
+            _photoService = photoService;
+
         }
         private VehicleResponse MapToVehicleResponse(Vehicle vehicle, decimal finalPrice, int currentStock, decimal? dealerSellingPrice)
         {
@@ -84,6 +87,18 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     return Result<VehicleResponse>.Conflict("Manufacturer (EVM) not found. Cannot create vehicle.");
                 }
 
+                string imageUrl = null;
+
+                if (request.ImageUrl != null)
+                {
+                    imageUrl = await _photoService.UploadImageAsync(request.ImageUrl);
+
+                    if (string.IsNullOrEmpty(imageUrl))
+                    {
+                        return Result<VehicleResponse>.InternalServerError("Image upload failed.");
+                    }
+                }
+
                 var newVehicle = new Vehicle
                 {
                     Id = Guid.NewGuid(),
@@ -91,7 +106,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     Version = request.Version,
                     Category = request.Category,
                     Color = request.Color,
-                    ImageUrl = request.ImageUrl,
+                    ImageUrl = imageUrl,
                     Description = request.Description,
                     BatteryCapacity = request.BatteryCapacity,
                     RangePerCharge = request.RangePerCharge,

@@ -5,7 +5,7 @@ namespace EVMDealerSystem.BusinessLogic.Models.Request
 {
     public class AppointmentCreateRequest
     {
-        public CustomerCreateRequest? NewCustomer { get; set; } // if provided, create new
+        public CustomerCreateRequest? NewCustomer { get; set; }
 
         [Required] public Guid VehicleId { get; set; }
         [Required] public Guid DealerId { get; set; }

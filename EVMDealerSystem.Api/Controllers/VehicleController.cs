@@ -34,7 +34,7 @@ namespace EVMDealerSystem.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Result<VehicleResponse>>> CreateVehicle([FromBody] VehicleCreateRequest request)
+        public async Task<ActionResult<Result<VehicleResponse>>> CreateVehicle([FromForm] VehicleCreateRequest request)
         {
             if (!ModelState.IsValid)
             {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -15,7 +16,7 @@ namespace EVMDealerSystem.BusinessLogic.Models.Request.Vehicle
         public string? Version { get; set; }
         public string? Category { get; set; }
         public string? Color { get; set; }
-        public string? ImageUrl { get; set; }
+        public IFormFile? ImageUrl { get; set; }
         public string? Description { get; set; }
         public decimal? BatteryCapacity { get; set; }
         public int? RangePerCharge { get; set; }
