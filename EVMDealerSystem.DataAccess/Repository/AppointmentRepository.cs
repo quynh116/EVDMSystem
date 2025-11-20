@@ -13,6 +13,16 @@ namespace EVMDealerSystem.DataAccess.Repository
         private readonly EVMDealerSystemContext _context;
         public AppointmentRepository(EVMDealerSystemContext context) { _context = context; }
 
+        private IQueryable<Appointment> GetQueryWithIncludes()
+        {
+            return _context.Appointments
+                .Include(a => a.Customer)
+                .Include(a => a.DealerStaff)
+                    .ThenInclude(u => u.Dealer)
+                .Include(a => a.Vehicle)
+                .AsNoTracking();
+        }
+
         public async Task<Appointment> AddAsync(Appointment appointment)
         {
             await _context.Appointments.AddAsync(appointment);
@@ -21,10 +31,10 @@ namespace EVMDealerSystem.DataAccess.Repository
         }
 
         public async Task<Appointment?> GetByIdAsync(Guid id)
-            => await _context.Appointments.FindAsync(id);
+            => await GetQueryWithIncludes().FirstOrDefaultAsync(a => a.Id == id);
 
         public async Task<IEnumerable<Appointment>> GetAllAsync()
-            => await _context.Appointments.OrderByDescending(a => a.AppointmentDate).ToListAsync();
+            => await GetQueryWithIncludes().OrderByDescending(a => a.AppointmentDate).ToListAsync();
 
         public async Task<Appointment> UpdateAsync(Appointment appointment)
         {

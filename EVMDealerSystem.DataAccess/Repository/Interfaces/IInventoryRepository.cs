@@ -27,5 +27,7 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task<IEnumerable<Inventory>> FindAvailableStockForAllocationAsync(Guid vehicleId, int quantity);
 
         Task<IEnumerable<Inventory>> GetAllocatedInventoryByRequestIdAsync(Guid requestId);
+
+        Task<IEnumerable<Inventory>> GetMonthlyAllocatedInventoryAsync(DateTime startDate);
     }
 }

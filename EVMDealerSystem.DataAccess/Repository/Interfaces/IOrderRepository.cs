@@ -17,5 +17,7 @@ namespace EVMDealerSystem.DataAccess.Repository.Interfaces
         Task<IEnumerable<Order>> GetByStaffIdAsync(Guid staffId);
         Task<IEnumerable<Order>> GetByDealerIdAsync(Guid dealerId);
         Task<int> CountTodayOrdersByDealerAsync(Guid dealerId);
+        Task<IEnumerable<Order>> GetMonthlySalesDataAsync(Guid dealerId, DateTime startDate);
+        Task<IEnumerable<Order>> GetMonthlyAdminSalesDataAsync(DateTime startDate);
     }
 }

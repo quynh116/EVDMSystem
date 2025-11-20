@@ -98,5 +98,23 @@ namespace EVMDealerSystem.DataAccess.Repository
                            o.CreatedAt < tomorrow)
                 .CountAsync();
         }
+
+        public async Task<IEnumerable<Order>> GetMonthlySalesDataAsync(Guid dealerId, DateTime startDate)
+        {
+            return await _context.Orders
+        .Where(o => o.DealerId == dealerId && o.CreatedAt >= startDate)
+        .Include(o => o.Vehicle)
+        .AsNoTracking()
+        .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Order>> GetMonthlyAdminSalesDataAsync(DateTime startDate)
+        {
+            return await _context.Orders
+        .Where(o => o.CreatedAt >= startDate)
+        .Include(o => o.Vehicle)
+        .AsNoTracking()
+        .ToListAsync();
+        }
     }
 }

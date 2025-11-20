@@ -171,5 +171,15 @@ namespace EVMDealerSystem.DataAccess.Repository
         )
         .ToListAsync();
         }
+
+        public async Task<IEnumerable<Inventory>> GetMonthlyAllocatedInventoryAsync(DateTime startDate)
+        {
+            return await _context.Inventories
+        .Where(i => i.CreatedAt >= startDate &&
+                    i.DealerId != null && 
+                    (i.Status != "At Manufacturer"))
+        .AsNoTracking()
+        .ToListAsync();
+        }
     }
 }

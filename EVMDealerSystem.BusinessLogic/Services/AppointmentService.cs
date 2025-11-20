@@ -29,6 +29,33 @@ namespace EVMDealerSystem.BusinessLogic.Services
             _inventoryRepo = inventoryRepo;
         }
 
+        private AppointmentResponse Map(Appointment a)
+        {
+
+            return new AppointmentResponse
+            {
+                Id = a.Id,
+
+                CustomerId = a.CustomerId,
+                CustomerName = a.Customer.FullName ?? string.Empty, 
+                CustomerPhone = a.Customer.Phone, 
+
+                DealerStaffId = a.DealerStaffId,
+                DealerStaffName = a.DealerStaff.FullName ?? string.Empty,
+
+                VehicleId = a.VehicleId,
+                VehicleModelName = a.Vehicle.ModelName ?? string.Empty,
+                VehicleVersion = a.Vehicle.Version,
+                DealerId = a.DealerStaff.DealerId ?? Guid.Empty, 
+                DealerName = a.DealerStaff.Dealer?.Name ?? string.Empty, 
+                AppointmentDate = a.AppointmentDate,
+                Status = a.Status,
+                CreatedAt = a.CreatedAt,
+                UpdatedAt = a.UpdatedAt,
+                Note = a.Note
+            };
+        }
+
         public async Task<Result<AppointmentResponse>> CreateAsync(AppointmentCreateRequest request, Guid dealerStaffId)
         {
             try
@@ -177,17 +204,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
             return Result<IEnumerable<DateTime>>.Success(available);
         }
 
-        private AppointmentResponse Map(Appointment a) => new AppointmentResponse
-        {
-            Id = a.Id,
-            CustomerId = a.CustomerId,
-            DealerStaffId = a.DealerStaffId,
-            VehicleId = a.VehicleId,
-            AppointmentDate = a.AppointmentDate,
-            Status = a.Status,
-            CreatedAt = a.CreatedAt,
-            UpdatedAt = a.UpdatedAt,
-            Note = a.Note
-        };
+        
     }
 }
