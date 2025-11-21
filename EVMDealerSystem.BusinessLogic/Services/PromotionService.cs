@@ -103,7 +103,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     StartDate = request.StartDate.ToUniversalTime(),
                     EndDate = request.EndDate.ToUniversalTime(),
                     IsActive = request.IsActive,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = TimeHelper.GetVietNamTime(),
                     Note = request.Note
                 };
 
@@ -133,7 +133,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 existingPromotion.EndDate = request.EndDate?.ToUniversalTime() ?? existingPromotion.EndDate;
                 existingPromotion.IsActive = request.IsActive ?? existingPromotion.IsActive;
                 existingPromotion.Note = request.Note ?? existingPromotion.Note;
-                existingPromotion.UpdatedAt = DateTime.UtcNow;
+                existingPromotion.UpdatedAt = TimeHelper.GetVietNamTime();
 
                 if (existingPromotion.StartDate >= existingPromotion.EndDate)
                     return Result<PromotionResponse>.Invalid("Start Date must be before End Date.");

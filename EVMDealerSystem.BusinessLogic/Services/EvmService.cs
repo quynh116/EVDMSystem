@@ -80,7 +80,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     Address = request.Address,
                     Phone = request.Phone,
                     Email = request.Email,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = TimeHelper.GetVietNamTime(),
                     UpdatedAt = null
                 };
 
@@ -108,7 +108,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (request.Phone != null) evm.Phone = request.Phone;
                 if (request.Email != null) evm.Email = request.Email;
 
-                evm.UpdatedAt = DateTime.UtcNow;
+                evm.UpdatedAt = TimeHelper.GetVietNamTime();
 
                 await _evmRepository.UpdateEvmAsync(evm);
 

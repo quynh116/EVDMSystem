@@ -97,7 +97,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     DealerId = request.DealerId,
                     Note = request.Note,
                     Status = "Pending Manager Approval",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = TimeHelper.GetVietNamTime()
                 };
 
                 var addedRequest = await _requestRepository.AddVehicleRequestAsync(newRequest);
@@ -114,7 +114,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                         VehicleRequestId = addedRequest.Id,
                         VehicleId = itemDto.VehicleId,
                         Quantity = itemDto.Quantity,
-                        CreatedAt = DateTime.UtcNow
+                        CreatedAt = TimeHelper.GetVietNamTime()
                     };
 
 
@@ -260,7 +260,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 vehicleRequest.Status = "Pending EVM Allocation";
                 vehicleRequest.ApprovedBy = managerId;
-                vehicleRequest.ApprovedAt = DateTime.UtcNow;
+                vehicleRequest.ApprovedAt = TimeHelper.GetVietNamTime();
 
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
                 var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
@@ -296,7 +296,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 vehicleRequest.Status = "Canceled by Manager";
                 vehicleRequest.CancellationReason = reason;
                 vehicleRequest.CanceledBy = managerId;
-                vehicleRequest.CanceledAt = DateTime.UtcNow;
+                vehicleRequest.CanceledAt = TimeHelper.GetVietNamTime();
 
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
                 var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
@@ -352,14 +352,14 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 Guid currentRequestId = vehicleRequest.Id;
                 Guid dealerId = vehicleRequest.DealerId;
-                DateTime shippingDate = DateTime.UtcNow; 
+                DateTime shippingDate = TimeHelper.GetVietNamTime(); 
 
                 foreach (var inventory in allUnitsToAllocate)
                 {
                     inventory.DealerId = dealerId;
                     inventory.Status = "Shipped to Dealer";
                     inventory.VehicleRequestId = currentRequestId;
-                    inventory.UpdatedAt = DateTime.UtcNow;
+                    inventory.UpdatedAt = TimeHelper.GetVietNamTime();
 
                     inventory.ShippingDate = shippingDate;
                 }
@@ -368,7 +368,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
                 vehicleRequest.Status = "Shipped";
                 vehicleRequest.ApprovedBy = evmStaffId;
-                vehicleRequest.ApprovedAt = DateTime.UtcNow;
+                vehicleRequest.ApprovedAt = TimeHelper.GetVietNamTime();
 
                 vehicleRequest.ExpectedDeliveryDate = request.ExpectedDeliveryDate;
 
@@ -405,7 +405,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 vehicleRequest.Status = "Canceled by EVM";
                 vehicleRequest.CancellationReason = reason;
                 vehicleRequest.CanceledBy = evmStaffId;
-                vehicleRequest.CanceledAt = DateTime.UtcNow;
+                vehicleRequest.CanceledAt = TimeHelper.GetVietNamTime();
 
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
                 var updatedRequest = await _requestRepository.GetVehicleRequestByIdAsync(requestId);
@@ -436,7 +436,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
 
                 vehicleRequest.Status = "Completed";
-                vehicleRequest.AllocationConfirmationDate = DateTime.UtcNow;
+                vehicleRequest.AllocationConfirmationDate = TimeHelper.GetVietNamTime();
 
                 await _requestRepository.UpdateVehicleRequestAsync(vehicleRequest);
 
@@ -448,7 +448,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     foreach (var inventory in allocatedInventories)
                     {
                         inventory.Status = "Allocated to Dealer";
-                        inventory.ReceivedDate = DateTime.UtcNow;
+                        inventory.ReceivedDate = TimeHelper.GetVietNamTime();
                         inventoriesToUpdate.Add(inventory);
                     }
 

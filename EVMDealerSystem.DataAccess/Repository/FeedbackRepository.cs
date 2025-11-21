@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace EVMDealerSystem.DataAccess.Repository.Implementations
+namespace EVMDealerSystem.DataAccess.Repository
 {
     public class FeedbackRepository : IFeedbackRepository
     {

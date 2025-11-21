@@ -152,7 +152,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     RoleId = targetRole.Id,
                     DealerId = request.DealerId,
                     IsActive = request.IsActive,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = TimeHelper.GetVietNamTime(),
                 };
                 var addedUser = await _userRepository.AddUserAsync(newUser);
                 var userWithRole = await _userRepository.GetUserByIdAsync(addedUser.Id);
@@ -186,7 +186,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 {
                     user.DealerId = request.DealerId.Value;
                 }
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = TimeHelper.GetVietNamTime();
                 await _userRepository.UpdateUserAsync(user);
                 var updatedUserWithRole = await _userRepository.GetUserByIdAsync(user.Id);
                 return Result<UserResponse>.Success(MapToUserResponse(updatedUserWithRole), "User updated.");

@@ -9,7 +9,6 @@ namespace EVMDealerSystem.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class FeedbackController : ControllerBase
     {
         private readonly IFeedbackService _service;
@@ -42,12 +41,8 @@ namespace EVMDealerSystem.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] FeedbackCreateRequest request)
         {
-            // customer id from JWT claim (assuming customer posts feedback) or other flow
-            var userClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (userClaim == null) return Unauthorized();
-            if (!Guid.TryParse(userClaim.Value, out var customerId)) return Unauthorized();
 
-            var res = await _service.CreateAsync(request, customerId);
+            var res = await _service.CreateAsync(request);
             if (!res.IsSuccess) return BadRequest(res.Messages);
             return CreatedAtAction(nameof(GetById), new { id = res.Data.Id }, res.Data);
         }

@@ -84,7 +84,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                             Email = request.NewCustomer?.Email,
                             Address = request.NewCustomer?.Address,
                             DealerStaffId = dealerStaffId,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = TimeHelper.GetVietNamTime()
                         };
                         await _customerRepo.AddAsync(newCustomer);
                         customer = newCustomer;
@@ -119,12 +119,16 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     AppointmentDate = request.AppointmentDate,
                     Status = "Booked",
                     Note = request.Note,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = TimeHelper.GetVietNamTime()
                 };
 
                 var created = await _appointmentRepo.AddAsync(appointment);
 
-                var response = Map(created);
+                var fullAppointment = await _appointmentRepo.GetByIdAsync(created.Id);
+                if (fullAppointment == null)
+                    return Result<AppointmentResponse>.InternalServerError("Failed to retrieve created appointment.");
+
+                var response = Map(fullAppointment);
                 return Result<AppointmentResponse>.Success(response, "Appointment created successfully.");
             }
             catch (Exception ex)
@@ -166,10 +170,14 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 appointment.AppointmentDate = request.AppointmentDate.Value;
 
             appointment.Note = request.Note ?? appointment.Note;
-            appointment.UpdatedAt = DateTime.UtcNow;
+            appointment.UpdatedAt = TimeHelper.GetVietNamTime();
 
             var updated = await _appointmentRepo.UpdateAsync(appointment);
-            return Result<AppointmentResponse>.Success(Map(updated), "Appointment updated successfully.");
+            var fullAppointment = await _appointmentRepo.GetByIdAsync(updated.Id);
+            if (fullAppointment == null)
+                return Result<AppointmentResponse>.InternalServerError("Failed to retrieve updated appointment.");
+
+            return Result<AppointmentResponse>.Success(Map(fullAppointment), "Appointment updated successfully.");
         }
 
 
@@ -183,14 +191,33 @@ namespace EVMDealerSystem.BusinessLogic.Services
         public async Task<Result<IEnumerable<AppointmentResponse>>> GetByDealerIdAsync(Guid dealerStaffId)
         {
             var list = await _appointmentRepo.GetByDealerIdAsync(dealerStaffId);
-            var mapped = list.Select(Map).ToList();
+            if (!list.Any())
+                return Result<IEnumerable<AppointmentResponse>>.Success(new List<AppointmentResponse>());
+
+            var fullAppointments = new List<Appointment>();
+            foreach (var item in list)
+            {
+                var full = await _appointmentRepo.GetByIdAsync(item.Id);
+                if (full != null)
+                    fullAppointments.Add(full);
+            }
+
+            var mapped = fullAppointments.Select(Map).ToList();
             return Result<IEnumerable<AppointmentResponse>>.Success(mapped);
         }
 
         public async Task<Result<IEnumerable<AppointmentResponse>>> GetByVehicleDateAsync(Guid vehicleId, DateTime date)
         {
             var list = await _appointmentRepo.GetByVehicleAndDateAsync(vehicleId, date);
-            var mapped = list.Select(Map).ToList();
+
+            var fullAppointments = new List<Appointment>();
+            foreach (var item in list)
+            {
+                var full = await _appointmentRepo.GetByIdAsync(item.Id);
+                if (full != null)
+                    fullAppointments.Add(full);
+            }
+            var mapped = fullAppointments.Select(Map).ToList();
             return Result<IEnumerable<AppointmentResponse>>.Success(mapped);
         }
 

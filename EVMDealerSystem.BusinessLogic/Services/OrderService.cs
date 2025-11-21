@@ -60,7 +60,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     Email = request.NewCustomer.Email,
                     Address = request.NewCustomer.Address,
                     DealerStaffId = dealerStaffId,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = TimeHelper.GetVietNamTime()
                 };
                 await _context.Customers.AddAsync(newCust);
                 await _context.SaveChangesAsync();
@@ -92,13 +92,13 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     OrderStatus = "confirmed",
                     PaymentStatus = request.PaymentType.ToLower() == "full" ? "paid" : "partial_paid",
                     PaymentType = request.PaymentType.ToLower(),
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = TimeHelper.GetVietNamTime()
                 };
 
                 var created = await _orderRepo.AddAsync(order);
 
                 inventory.Status = "sold";
-                inventory.UpdatedAt = DateTime.UtcNow;
+                inventory.UpdatedAt = TimeHelper.GetVietNamTime();
                 await _inventoryRepo.UpdateInventoryAsync(inventory);
 
                 await tx.CommitAsync();
@@ -142,7 +142,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
         {
             var o = await _orderRepo.GetByIdAsync(orderId);
             if (o == null) return Result<BusinessLogic.Models.Responses.OrderResponse>.NotFound("Order not found.");
-
+            var feedbackContent = o.Feedbacks.FirstOrDefault()?.Content;
             var resp = new BusinessLogic.Models.Responses.OrderResponse
             {
                 Id = o.Id,
@@ -164,7 +164,8 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 PaymentType = o.PaymentType,
                 CreatedAt = o.CreatedAt,
                 DeliveredAt = o.DeliveredAt,
-                Note = o.Note
+                Note = o.Note,
+                FeedbackContent = feedbackContent
             };
 
             return Result<BusinessLogic.Models.Responses.OrderResponse>.Success(resp);
@@ -195,7 +196,8 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     PaymentType = o.PaymentType,
                     CreatedAt = o.CreatedAt,
                     DeliveredAt = o.DeliveredAt,
-                    Note = o.Note
+                    Note = o.Note,
+                    FeedbackContent = o.Feedbacks.FirstOrDefault()?.Content
                 }).ToList();
 
                 return Result<IEnumerable<OrderResponse>>.Success(list);

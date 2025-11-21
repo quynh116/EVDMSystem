@@ -17,27 +17,29 @@ namespace EVMDealerSystem.DataAccess.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<Order>> GetAllAsync()
+        private IQueryable<Order> GetQueryWithIncludes()
         {
-            return await _context.Orders
+            return _context.Orders
                 .Include(o => o.Customer)
                 .Include(o => o.Vehicle)
                 .Include(o => o.Dealer)
                 .Include(o => o.DealerStaff)
                 .Include(o => o.Inventory)
-                .OrderByDescending(o => o.CreatedAt)
-                .ToListAsync();
+                .Include(o => o.Feedbacks) 
+                .AsNoTracking();
+        }
+
+        public async Task<IEnumerable<Order>> GetAllAsync()
+        {
+            return await GetQueryWithIncludes()
+             .OrderByDescending(o => o.CreatedAt)
+             .ToListAsync();
         }
 
         public async Task<Order?> GetByIdAsync(Guid id)
         {
-            return await _context.Orders
-                .Include(o => o.Customer)
-                .Include(o => o.Vehicle)
-                .Include(o => o.Dealer)
-                .Include(o => o.DealerStaff)
-                .Include(o => o.Inventory)
-                .FirstOrDefaultAsync(o => o.Id == id);
+            return await GetQueryWithIncludes()
+            .FirstOrDefaultAsync(o => o.Id == id);
         }
 
         public async Task<Order> AddAsync(Order order)

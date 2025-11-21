@@ -63,7 +63,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     DealerId = request.DealerId,
                     VinNumber = request.VinNumber.Trim().ToUpper(),
                     Status = request.Status ?? "In Stock", 
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = TimeHelper.GetVietNamTime(),
                     UpdatedAt = null
                 };
 
@@ -123,7 +123,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (request.VinNumber != null) inventory.VinNumber = request.VinNumber.Trim().ToUpper();
                 if (request.Status != null) inventory.Status = request.Status;
 
-                inventory.UpdatedAt = DateTime.UtcNow;
+                inventory.UpdatedAt = TimeHelper.GetVietNamTime();
 
                 await _inventoryRepository.UpdateInventoryAsync(inventory);
 

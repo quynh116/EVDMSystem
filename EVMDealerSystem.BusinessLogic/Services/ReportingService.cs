@@ -26,7 +26,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
         public async Task<Result<ProfitChartResponse>> GetMonthlyAdminProfitDataAsync()
         {
-            var today = DateTime.UtcNow;
+            var today = TimeHelper.GetVietNamTime();
             var startDate = today.AddMonths(-11);
             startDate = new DateTime(startDate.Year, startDate.Month, 1);
 
@@ -73,7 +73,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
 
         public async Task<Result<AllocationChartResponse>> GetMonthlyEvmAllocationDataAsync()
         {
-            var today = DateTime.UtcNow;
+            var today = TimeHelper.GetVietNamTime();
             var startDate = today.AddMonths(-11);
             startDate = new DateTime(startDate.Year, startDate.Month, 1);
 
@@ -123,7 +123,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             }
             Guid dealerId = user.DealerId.Value;
 
-            var today = DateTime.UtcNow;
+            var today = TimeHelper.GetVietNamTime();
             var startDate = today.AddMonths(-11);
             startDate = new DateTime(startDate.Year, startDate.Month, 1);
 

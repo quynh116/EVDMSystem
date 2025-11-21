@@ -24,7 +24,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 OrderId = request.OrderId,
                 Amount = request.Amount,
                 PaymentMethod = request.PaymentMethod,
-                TransactionDate = request.TransactionDate ?? DateTime.UtcNow,
+                TransactionDate = request.TransactionDate ?? TimeHelper.GetVietNamTime(),
                 Note = request.Note
             };
 

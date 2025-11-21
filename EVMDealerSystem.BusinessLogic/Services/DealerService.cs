@@ -68,7 +68,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     SalesTarget = request.SalesTarget,
                     IsActive = request.IsActive ?? true,
                     EvmId = evm.Id,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = TimeHelper.GetVietNamTime(),
                     UpdatedAt = null
                 };
 
@@ -126,7 +126,6 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     return Result<DealerResponse>.NotFound($"Dealer with ID {id} not found.");
                 }
 
-                // Áp dụng các thay đổi
                 if (request.Name != null) dealer.Name = request.Name;
                 if (request.Address != null) dealer.Address = request.Address;
                 if (request.Phone != null) dealer.Phone = request.Phone;
@@ -135,7 +134,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (request.SalesTarget.HasValue) dealer.SalesTarget = request.SalesTarget.Value;
                 if (request.IsActive.HasValue) dealer.IsActive = request.IsActive.Value;
 
-                dealer.UpdatedAt = DateTime.UtcNow;
+                dealer.UpdatedAt = TimeHelper.GetVietNamTime();
 
                 await _dealerRepository.UpdateDealerAsync(dealer);
 

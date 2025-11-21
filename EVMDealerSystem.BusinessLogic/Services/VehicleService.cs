@@ -114,7 +114,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                     Status =  "Available", 
                     LaunchDate = request.LaunchDate,
                     EvmId = evm.Id, 
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = TimeHelper.GetVietNamTime(),
                     UpdatedAt = null
                 };
 
@@ -266,7 +266,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 if (request.Status != null) vehicle.Status = request.Status;
                 if (request.LaunchDate.HasValue) vehicle.LaunchDate = request.LaunchDate.Value;
 
-                vehicle.UpdatedAt = DateTime.UtcNow;
+                vehicle.UpdatedAt = TimeHelper.GetVietNamTime();
 
                 await _vehicleRepository.UpdateVehicleAsync(vehicle);
 
@@ -321,7 +321,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                         DealerId = null, 
                         VinNumber = $"VIN-{vehicle.ModelName.Replace(" ", "").ToUpper()}-{DateTime.Now.Ticks}-{i}", 
                         Status = "At Manufacturer", 
-                        CreatedAt = DateTime.UtcNow,
+                        CreatedAt = TimeHelper.GetVietNamTime(),
                         UpdatedAt = null
                     });
                 }

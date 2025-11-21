@@ -16,19 +16,17 @@ namespace EVMDealerSystem.BusinessLogic.Services
         private readonly IFeedbackRepository _repo;
         public FeedbackService(IFeedbackRepository repo) { _repo = repo; }
 
-        public async Task<Result<FeedbackResponse>> CreateAsync(FeedbackCreateRequest request, Guid customerId)
+        public async Task<Result<FeedbackResponse>> CreateAsync(FeedbackCreateRequest request)
         {
             var fb = new Feedback
             {
                 Id = Guid.NewGuid(),
-                CustomerId = customerId,
+                CustomerId = request.CustomerId,
                 OrderId = request.OrderId,
-                Subject = request.Subject,
+                Subject = "Khách gửi phản hồi",
                 Content = request.Content,
-                FeedbackType = request.FeedbackType,
                 Status = "open",
-                CreatedAt = DateTime.UtcNow,
-                Note = request.Rating?.ToString()
+                CreatedAt = TimeHelper.GetVietNamTime()
             };
 
             var created = await _repo.AddAsync(fb);
@@ -59,7 +57,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             f.FeedbackType = request.FeedbackType ?? f.FeedbackType;
             f.Status = request.Status ?? f.Status;
             f.Note = request.Note ?? f.Note;
-            f.UpdatedAt = DateTime.UtcNow;
+            f.UpdatedAt = TimeHelper.GetVietNamTime();
 
             var updated = await _repo.UpdateAsync(f);
             return Result<FeedbackResponse>.Success(Map(updated), "Feedback updated");

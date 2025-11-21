@@ -9,7 +9,7 @@ namespace EVMDealerSystem.BusinessLogic.Services.Interfaces
 {
     public interface IFeedbackService
     {
-        Task<Result<FeedbackResponse>> CreateAsync(FeedbackCreateRequest request, Guid customerId);
+        Task<Result<FeedbackResponse>> CreateAsync(FeedbackCreateRequest request);
         Task<Result<FeedbackResponse>> GetByIdAsync(Guid id);
         Task<Result<IEnumerable<FeedbackResponse>>> GetAllAsync();
         Task<Result<FeedbackResponse>> UpdateAsync(Guid id, FeedbackUpdateRequest request);

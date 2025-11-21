@@ -12,6 +12,7 @@ namespace EVMDealerSystem.BusinessLogic.Models.Responses
         public Guid CustomerId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public string? CustomerPhone { get; set; }
+        public string? FeedbackContent { get; set; }
         public Guid DealerStaffId { get; set; }
         public string DealerStaffName { get; set; } = string.Empty;
         public Guid VehicleId { get; set; }

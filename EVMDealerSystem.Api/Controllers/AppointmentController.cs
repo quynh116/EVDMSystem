@@ -31,10 +31,10 @@ namespace EVMDealerSystem.Api.Controllers
             return Ok(res.Data);
         }
 
-        [HttpGet("dealer/{dealerId:guid}")]
-        public async Task<IActionResult> GetByDealer(Guid dealerId)
+        [HttpGet("dealer/{dealerStaffId:guid}")]
+        public async Task<IActionResult> GetByDealer(Guid dealerStaffId)
         {
-            var res = await _service.GetByDealerIdAsync(dealerId);
+            var res = await _service.GetByDealerIdAsync(dealerStaffId);
             if (!res.IsSuccess) return NotFound(res.Messages);
             return Ok(res.Data);
         }

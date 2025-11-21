@@ -30,7 +30,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
                 Email = request.Email,
                 Address = request.Address,
                 DealerStaffId = dealerStaffId,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = TimeHelper.GetVietNamTime()
             };
 
             var created = await _repo.AddAsync(c);
@@ -88,7 +88,7 @@ namespace EVMDealerSystem.BusinessLogic.Services
             c.Phone = request.Phone ?? c.Phone;
             c.Email = request.Email ?? c.Email;
             c.Address = request.Address ?? c.Address;
-            c.UpdatedAt = DateTime.UtcNow;
+            c.UpdatedAt = TimeHelper.GetVietNamTime();
 
             var updated = await _repo.UpdateAsync(c);
             var resp = new CustomerResponse
